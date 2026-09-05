@@ -6,14 +6,36 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		85AF98763045A3400011733D /* VeyraApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85AF98753045A3400011733D /* VeyraApp.swift */; };
+		85AF98783045A3400011733D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85AF98773045A3400011733D /* ContentView.swift */; };
+		85AF987A3045A3420011733D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 85AF98793045A3420011733D /* Assets.xcassets */; };
+		85AF98A53046FE4C0011733D /* AudioRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85AF98973046FC100011733D /* AudioRecorder.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		85AF98883046CE6D0011733D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 85AF986A3045A3400011733D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 85AF98713045A3400011733D;
+			remoteInfo = Veyra;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		85AF98723045A3400011733D /* Veyra.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Veyra.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		85AF98753045A3400011733D /* VeyraApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VeyraApp.swift; sourceTree = "<group>"; };
+		85AF98773045A3400011733D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		85AF98793045A3420011733D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		85AF98843046CE6D0011733D /* VeyraTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VeyraTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		85AF98973046FC100011733D /* AudioRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRecorder.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		85AF98743045A3400011733D /* Veyra */ = {
+		85AF98853046CE6D0011733D /* VeyraTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Veyra;
+			path = VeyraTests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -26,13 +48,24 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		85AF98813046CE6D0011733D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		85AF98693045A3400011733D = {
 			isa = PBXGroup;
 			children = (
-				85AF98743045A3400011733D /* Veyra */,
+				85AF98A43046FDAA0011733D /* Resources */,
+				85AF98A03046FD740011733D /* Services */,
+				85AF989F3046FD470011733D /* Features */,
+				85AF989E3046FD120011733D /* App */,
+				85AF98853046CE6D0011733D /* VeyraTests */,
 				85AF98733045A3400011733D /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,8 +74,57 @@
 			isa = PBXGroup;
 			children = (
 				85AF98723045A3400011733D /* Veyra.app */,
+				85AF98843046CE6D0011733D /* VeyraTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		85AF989E3046FD120011733D /* App */ = {
+			isa = PBXGroup;
+			children = (
+				85AF98753045A3400011733D /* VeyraApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		85AF989F3046FD470011733D /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				85AF98A63046FE710011733D /* Dictation */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		85AF98A03046FD740011733D /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				85AF98A13046FD860011733D /* Audio */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		85AF98A13046FD860011733D /* Audio */ = {
+			isa = PBXGroup;
+			children = (
+				85AF98973046FC100011733D /* AudioRecorder.swift */,
+			);
+			path = Audio;
+			sourceTree = "<group>";
+		};
+		85AF98A43046FDAA0011733D /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				85AF98793045A3420011733D /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		85AF98A63046FE710011733D /* Dictation */ = {
+			isa = PBXGroup;
+			children = (
+				85AF98773045A3400011733D /* ContentView.swift */,
+			);
+			path = Dictation;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -60,15 +142,35 @@
 			);
 			dependencies = (
 			);
-			fileSystemSynchronizedGroups = (
-				85AF98743045A3400011733D /* Veyra */,
-			);
 			name = Veyra;
 			packageProductDependencies = (
 			);
 			productName = Veyra;
 			productReference = 85AF98723045A3400011733D /* Veyra.app */;
 			productType = "com.apple.product-type.application";
+		};
+		85AF98833046CE6D0011733D /* VeyraTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 85AF988A3046CE6D0011733D /* Build configuration list for PBXNativeTarget "VeyraTests" */;
+			buildPhases = (
+				85AF98803046CE6D0011733D /* Sources */,
+				85AF98813046CE6D0011733D /* Frameworks */,
+				85AF98823046CE6D0011733D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				85AF98893046CE6D0011733D /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				85AF98853046CE6D0011733D /* VeyraTests */,
+			);
+			name = VeyraTests;
+			packageProductDependencies = (
+			);
+			productName = VeyraTests;
+			productReference = 85AF98843046CE6D0011733D /* VeyraTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -82,6 +184,10 @@
 				TargetAttributes = {
 					85AF98713045A3400011733D = {
 						CreatedOnToolsVersion = 26.6;
+					};
+					85AF98833046CE6D0011733D = {
+						CreatedOnToolsVersion = 26.6;
+						TestTargetID = 85AF98713045A3400011733D;
 					};
 				};
 			};
@@ -100,12 +206,21 @@
 			projectRoot = "";
 			targets = (
 				85AF98713045A3400011733D /* Veyra */,
+				85AF98833046CE6D0011733D /* VeyraTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		85AF98703045A3400011733D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				85AF987A3045A3420011733D /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		85AF98823046CE6D0011733D /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -119,10 +234,28 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				85AF98A53046FE4C0011733D /* AudioRecorder.swift in Sources */,
+				85AF98783045A3400011733D /* ContentView.swift in Sources */,
+				85AF98763045A3400011733D /* VeyraApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		85AF98803046CE6D0011733D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		85AF98893046CE6D0011733D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 85AF98713045A3400011733D /* Veyra */;
+			targetProxy = 85AF98883046CE6D0011733D /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		85AF987B3045A3420011733D /* Debug */ = {
@@ -309,6 +442,46 @@
 			};
 			name = Release;
 		};
+		85AF988B3046CE6D0011733D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Y26Q599L4W;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ajaysparmar.VeyraTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Veyra.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Veyra";
+			};
+			name = Debug;
+		};
+		85AF988C3046CE6D0011733D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Y26Q599L4W;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ajaysparmar.VeyraTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Veyra.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Veyra";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -326,6 +499,15 @@
 			buildConfigurations = (
 				85AF987E3045A3420011733D /* Debug */,
 				85AF987F3045A3420011733D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		85AF988A3046CE6D0011733D /* Build configuration list for PBXNativeTarget "VeyraTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				85AF988B3046CE6D0011733D /* Debug */,
+				85AF988C3046CE6D0011733D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -96,7 +96,7 @@ protocol TextInserting {
     func insert(_ text: String) async throws
 }
 
-enum HotkeyEvent { case pressed, released }
+enum HotkeyEvent { case pressed, released, cancelled }
 
 protocol HotkeyMonitoring: AnyObject {
     var handler: ((HotkeyEvent) -> Void)? { get set }
@@ -109,23 +109,25 @@ protocol HotkeyMonitoring: AnyObject {
 
 ```swift
 enum DictationState: Equatable {
-    case preparing(progress: Double)   // model download/load
+    case preparing(progress: Double?)
     case idle
     case recording(level: Float)
     case transcribing
     case failed(message: String)
+    case unavailable(message: String)
 }
 ```
 
 | From | Event | To | Action |
 |---|---|---|---|
 | `preparing` | model ready | `idle` | — |
-| `preparing` | load error | `failed` | show error; menu offers Retry |
+| `preparing` | load error | `unavailable` | show error; menu offers Retry |
 | `idle` | Fn pressed | `recording` | `audio.start()` |
-| `recording` | Fn released | `transcribing` | `audio.stop()`; if < 0.3 s of audio → `idle` |
+| `recording` | Fn released | `transcribing` | `audio.stop()`; if < 0.3 s or near-silent → `idle` |
+| `recording` | Fn cancelled (key/modifier pressed while held) | `idle` | discard audio |
 | `transcribing` | text ready | `idle` | trim; if empty skip; else process → insert |
 | any active | error | `failed` | auto-return to `idle` after 2 s |
-| `preparing` / `transcribing` / `failed` | Fn pressed | unchanged | ignored |
+| `preparing` / `transcribing` / `failed` / `unavailable` | Fn pressed | unchanged | ignored |
 
 `DictationCoordinator` is `@MainActor @Observable`, receives all dependencies through its initializer, and contains no framework-specific code.
 
@@ -135,9 +137,11 @@ enum DictationState: Equatable {
 
 **WhisperKitTranscriber** — `prepare` downloads (first launch, cached afterward in WhisperKit's default location) and loads `large-v3-turbo`, reporting progress. `transcribe` runs WhisperKit on the samples with language auto-detect and returns joined segment text. The exact WhisperKit model identifier and API signatures are verified against the current WhisperKit release during planning.
 
+WhisperKit output passes through `TranscriptCleaner`, which strips non-speech tags (`[BLANK_AUDIO]`, `♪`, a transcript that is only `(music)`). `ModelFolderCache` remembers the downloaded folder so later launches never hit the network.
+
 **PassthroughTextProcessor** — Returns input unchanged. Ollama processor replaces it in sub-project 2 with no coordinator changes.
 
-**FnKeyMonitor** — `NSEvent` global + local monitors for `.flagsChanged`; emits `.pressed` / `.released` on transitions of `.function` only, ignoring Fn used together with other keys (e.g. Fn+arrow) by cancelling if a `.keyDown` arrives while held.
+**FnKeyMonitor** — `NSEvent` global + local monitors for `.flagsChanged`; emits `.pressed` / `.released` on transitions of `.function` only, emits `.cancelled` if a `.keyDown` or another modifier arrives while Fn is held (e.g. Fn+arrow), so that recording is discarded.
 
 **PasteboardTextInserter** — Snapshots current pasteboard items, writes the text, sends ⌘V via `KeystrokeSending`, waits ~250 ms, restores the snapshot only if the pasteboard `changeCount` is still the one it set.
 

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		8565516F306C564700EE41FC /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 8565516E306C563900EE41FC /* README.md */; };
 		85AF98763045A3400011733D /* VeyraApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85AF98753045A3400011733D /* VeyraApp.swift */; };
 		85AF98783045A3400011733D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85AF98773045A3400011733D /* ContentView.swift */; };
 		85AF987A3045A3420011733D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 85AF98793045A3420011733D /* Assets.xcassets */; };
@@ -24,6 +25,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		8565516E306C563900EE41FC /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		85AF98723045A3400011733D /* Veyra.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Veyra.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		85AF98753045A3400011733D /* VeyraApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VeyraApp.swift; sourceTree = "<group>"; };
 		85AF98773045A3400011733D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -61,6 +63,7 @@
 		85AF98693045A3400011733D = {
 			isa = PBXGroup;
 			children = (
+				8565516E306C563900EE41FC /* README.md */,
 				85AF98A43046FDAA0011733D /* Resources */,
 				85AF98A03046FD740011733D /* Services */,
 				85AF989F3046FD470011733D /* Features */,
@@ -224,6 +227,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8565516F306C564700EE41FC /* README.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

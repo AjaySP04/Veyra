@@ -134,3 +134,20 @@ final class FakeChatCompleter: ChatCompleting {
         return try reply.get()
     }
 }
+
+@MainActor
+final class FakeAppContextProvider: AppContextProviding {
+    var context = AppContext(bundleIdentifier: nil, windowTitle: nil)
+
+    func current() -> AppContext { context }
+}
+
+@MainActor
+final class RecordingProcessor: TextProcessing {
+    private(set) var modes: [DictationMode] = []
+
+    func process(_ text: String, mode: DictationMode) async throws -> String {
+        modes.append(mode)
+        return text
+    }
+}

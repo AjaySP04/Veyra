@@ -8,6 +8,7 @@ struct DictationCoordinatorTests {
     private let inserter = FakeInserter()
     private let hotkey = FakeHotkey()
     private let permissions = FakePermissions()
+    private let context = FakeAppContextProvider()
 
     private func readyCoordinator(
         processor: TextProcessing = PassthroughTextProcessor(),
@@ -20,6 +21,7 @@ struct DictationCoordinatorTests {
             inserter: inserter,
             hotkey: hotkey,
             permissions: permissions,
+            contextProvider: context,
             failureDisplayDuration: failureDisplayDuration
         )
         await coordinator.start()
@@ -170,5 +172,34 @@ struct DictationCoordinatorTests {
         let coordinator = await readyCoordinator()
         coordinator.reconnectHotkey()
         #expect(hotkey.startCount == 2)
+    }
+
+    @Test func processorReceivesModeOfAppAtPress() async {
+        let processor = RecordingProcessor()
+        context.context = AppContext(bundleIdentifier: "com.tinyspeck.slackmacgap", windowTitle: nil)
+        let coordinator = await readyCoordinator(processor: processor)
+        await dictate(coordinator)
+        #expect(processor.modes == [.chat])
+    }
+
+    @Test func switchingAppsAfterPressKeepsPressMode() async {
+        let processor = RecordingProcessor()
+        context.context = AppContext(bundleIdentifier: "com.mitchellh.ghostty", windowTitle: nil)
+        let coordinator = await readyCoordinator(processor: processor)
+        hotkey.send(.pressed)
+        context.context = AppContext(bundleIdentifier: "com.apple.mail", windowTitle: nil)
+        hotkey.send(.released)
+        await coordinator.transcription?.value
+        #expect(processor.modes == [.terminal])
+    }
+
+    @Test func eachPressReadsTheCurrentApp() async {
+        let processor = RecordingProcessor()
+        let coordinator = await readyCoordinator(processor: processor)
+        context.context = AppContext(bundleIdentifier: "com.google.Chrome", windowTitle: "Inbox - Gmail")
+        await dictate(coordinator)
+        context.context = AppContext(bundleIdentifier: "com.mitchellh.ghostty", windowTitle: nil)
+        await dictate(coordinator)
+        #expect(processor.modes == [.email, .terminal])
     }
 }

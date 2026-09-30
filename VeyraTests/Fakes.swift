@@ -86,7 +86,7 @@ final class FakeTranscriber: Transcribing {
 }
 
 struct UppercasingProcessor: TextProcessing {
-    func process(_ text: String) async throws -> String { text.uppercased() }
+    func process(_ text: String, mode: DictationMode) async throws -> String { text.uppercased() }
 }
 
 @MainActor

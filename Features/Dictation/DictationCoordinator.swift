@@ -101,7 +101,7 @@ final class DictationCoordinator {
             let transcript = try await transcriber.transcribe(samples)
             Logger.dictation.info("Transcript \(transcript.count) characters")
             if !transcript.isEmpty {
-                try await inserter.insert(try await processor.process(transcript))
+                try await inserter.insert(try await processor.process(transcript, mode: .standard))
             }
             state = .idle
         } catch {

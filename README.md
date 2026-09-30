@@ -12,29 +12,57 @@ Private, unlimited voice dictation for macOS — hold <b>Fn</b>, speak, release,
 ## Features
 
 - **Works in any app** — Notes, Slack, VS Code, browsers, Terminal.
-- **Fully local** — Whisper runs on your Mac. No account, no usage limits, works offline.
+- **Private by default** — Whisper runs on your Mac. No account, no usage limits, works offline.
+- **Clean text** — with [Ollama](https://ollama.com), filler words are removed and punctuation fixed by `gemma4` on your Mac, falling back to `gemma4:cloud` only when the local model is unavailable.
 - **Noise-aware** — Apple voice processing plus optional Voice Isolation for busy rooms.
 - **Clipboard-safe** — your previous clipboard is restored after every paste.
 
 ## Requirements
 
-- Mac with Apple Silicon, macOS 26.5 or later
+- A Mac with Apple Silicon, running macOS 26.5 or later
 - Xcode 26 or later (Veyra is built from source)
-- ~2 GB free disk space for the speech model
+- An Apple ID (a free one works) for signing the build
+- ~2 GB of disk for the speech model, plus ~7 GB if you add local cleanup
 
 ## Installation
+
+### 1. Install Xcode
+
+Install Xcode from the App Store, open it once to finish setup, then point the command-line tools at it:
+
+```bash
+sudo xcode-select -s /Applications/Xcode.app
+```
+
+### 2. Get the code
 
 ```bash
 git clone https://github.com/AjaySP04/Veyra.git
 cd Veyra
+```
+
+### 3. Set up signing (first time on your Mac)
+
+macOS only grants microphone and keyboard access to signed apps, so the build must be signed with your own Apple ID:
+
+1. Open `Veyra.xcodeproj` in Xcode.
+2. **Xcode → Settings → Accounts** → add your Apple ID.
+3. Select the **Veyra** target → **Signing & Capabilities**:
+   - **Team:** your name (Personal Team).
+   - **Bundle Identifier:** change `com.ajaysparmar.Veyra` to something unique, such as `com.yourname.Veyra`.
+4. Close Xcode.
+
+Skip this step if you're the project owner.
+
+### 4. Build and install
+
+```bash
 ./scripts/install.sh
 ```
 
-This builds Veyra, installs it to `/Applications`, and launches it. A microphone icon appears in the menu bar.
+This builds a Release copy, installs it to `/Applications`, and launches it. A microphone icon appears in the menu bar.
 
-> Building with your own Apple ID? Open `Veyra.xcodeproj` → **Veyra** target → **Signing & Capabilities** and pick your team first.
-
-### First launch
+### 5. First launch
 
 1. **Allow microphone access** when prompted.
 2. **Turn on Accessibility:** System Settings → Privacy & Security → Accessibility → **Veyra**.
@@ -42,6 +70,26 @@ This builds Veyra, installs it to `/Applications`, and launches it. A microphone
 4. **Wait for the model:** the first launch downloads Whisper (~1.6 GB). The menu shows progress, then **Hold Fn to dictate**.
 
 Optional: add Veyra to **System Settings → General → Login Items** to start it automatically.
+
+### 6. Transcript cleanup (optional)
+
+Without Ollama, Veyra pastes exactly what Whisper heard. To remove filler words and fix punctuation:
+
+1. Download and open [Ollama](https://ollama.com/download). It runs in the menu bar.
+2. Pull the local cleanup model:
+
+   ```bash
+   ollama pull gemma4:latest    # ~6.6 GB
+   ```
+
+3. Optionally, add the free cloud model as a fallback for when the local one is unavailable:
+
+   ```bash
+   ollama signin
+   ollama pull gemma4:cloud
+   ```
+
+Veyra picks this up automatically; no restart is needed. Cloud cleanup sends your dictated text to ollama.com. Run `ollama rm gemma4:cloud` to keep everything on your Mac.
 
 ## Usage
 
@@ -58,10 +106,12 @@ Veyra transcribes in English.
 
 | Problem | Fix |
 |---|---|
+| Build fails with a signing error | Complete [step 3](#3-set-up-signing-first-time-on-your-mac): choose your team and a unique bundle identifier. |
 | Nothing is typed | Open the Veyra menu and grant any permission it lists. |
 | Fn opens the emoji picker | Set *Press 🌐 key to* → **Do Nothing**. |
 | Menu shows an error | Check your connection and click **Retry**. |
 | Fn stops working after an update | Remove Veyra from Accessibility, then add it again. |
+| Text isn't cleaned up | Make sure Ollama is running and `ollama list` shows `gemma4:latest`. |
 
 View diagnostics (never includes your words):
 
@@ -75,7 +125,7 @@ log stream --level info --predicate 'subsystem == "com.ajaysparmar.Veyra"'
 # Update
 git pull && ./scripts/install.sh
 
-# Uninstall
+# Uninstall (use your own bundle identifier if you changed it)
 pkill -x Veyra
 rm -rf /Applications/Veyra.app "$HOME/Library/Application Support/Veyra"
 defaults delete com.ajaysparmar.Veyra
@@ -90,10 +140,10 @@ xcodebuild test -project Veyra.xcodeproj -scheme Veyra -destination 'platform=ma
 ```
 
 ```text
-Fn ─► FnKeyMonitor ─► DictationCoordinator ─► AudioRecorder ─► WhisperKitTranscriber ─► PasteboardTextInserter
+Fn ─► FnKeyMonitor ─► DictationCoordinator ─► AudioRecorder ─► WhisperKitTranscriber ─► OllamaTextProcessor ─► PasteboardTextInserter
 ```
 
-Built with Swift, SwiftUI, AVFoundation and [WhisperKit](https://github.com/argmaxinc/argmax-oss-swift). Each service sits behind a protocol, so engines can be swapped and the coordinator is tested with fakes.
+Built with Swift, SwiftUI, AVFoundation, [WhisperKit](https://github.com/argmaxinc/argmax-oss-swift) and [Ollama](https://ollama.com). Each service sits behind a protocol, so engines can be swapped and the coordinator is tested with fakes.
 
 ## The story behind Veyra
 

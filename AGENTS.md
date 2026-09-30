@@ -11,7 +11,7 @@ Single-context layout (one `CONTEXT.md` + `docs/adr/` at the repo root). See `do
 ## Roadmap
 
 - [x] Local dictation with a global Fn hotkey
-- [ ] Transcript cleanup and formatting with a local LLM (Ollama) — plugs in behind `TextProcessing`
+- [x] Transcript cleanup with Ollama (`gemma4:latest`, then `gemma4:cloud`) behind `TextProcessing`
 - [ ] App-aware modes (email, chat, code)
 - [ ] Voice commands and agent actions
 

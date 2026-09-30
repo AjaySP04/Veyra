@@ -540,10 +540,10 @@ Cloud-based providers may eventually be supported as explicit user-selected alte
 
 ## Phase 5 — Local AI Processing
 
-- [ ] Integrate Ollama
-- [ ] Select local LLM
-- [ ] Transcript cleanup
-- [ ] Grammar correction
+- [x] Integrate Ollama
+- [x] Select local LLM
+- [x] Transcript cleanup
+- [x] Grammar correction
 - [ ] Formatting
 - [ ] Structured outputs
 - [ ] Prompt management

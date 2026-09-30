@@ -99,7 +99,15 @@ Veyra picks this up automatically; no restart is needed. The cloud model is used
 | Reduce background voices | Veyra menu → **Microphone Mode…** → **Voice Isolation** |
 | Quit | Veyra menu → **Quit Veyra** (⌘Q) |
 
-Veyra transcribes in English.
+Veyra transcribes in English and adapts cleanup to the app you're dictating into:
+
+| Mode | Apps | What changes |
+|---|---|---|
+| Email | Mail, Outlook, Spark, Gmail and Outlook in a browser | Greeting line, paragraphs and sign-off — only when you say them |
+| Chat | Slack, Teams, WhatsApp, Messages, Discord, Telegram, Google Chat and Slack in a browser | Short and casual; bullets only for an announced list |
+| Editor | VS Code, Xcode, Cursor, Zed, Sublime Text, JetBrains IDEs, TextEdit, Notes | Technical terms kept exactly |
+| Terminal | Terminal, Ghostty, iTerm, Warp | Always one line, so a line break can never run a command |
+| Standard | Everything else | Filler removal, punctuation and bullet lists |
 
 ## Troubleshooting
 

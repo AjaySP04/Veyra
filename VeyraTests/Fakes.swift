@@ -86,7 +86,7 @@ final class FakeTranscriber: Transcribing {
 }
 
 struct UppercasingProcessor: TextProcessing {
-    func process(_ text: String) async throws -> String { text.uppercased() }
+    func process(_ text: String, mode: DictationMode) async throws -> String { text.uppercased() }
 }
 
 @MainActor
@@ -132,5 +132,26 @@ final class FakeChatCompleter: ChatCompleting {
         requests.append(request)
         guard let reply = replies[request.model] else { throw TestError() }
         return try reply.get()
+    }
+}
+
+@MainActor
+final class FakeAppContextProvider: AppContextProviding {
+    var context = AppContext(bundleIdentifier: nil, windowTitle: nil)
+    var onRead: () -> Void = {}
+
+    func current() -> AppContext {
+        onRead()
+        return context
+    }
+}
+
+@MainActor
+final class RecordingProcessor: TextProcessing {
+    private(set) var modes: [DictationMode] = []
+
+    func process(_ text: String, mode: DictationMode) async throws -> String {
+        modes.append(mode)
+        return text
     }
 }

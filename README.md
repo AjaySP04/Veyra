@@ -101,13 +101,4 @@ The name blends **voice**, **clarity** and **presence**: **Ve** for *voice*, **y
 
 We talk to machines through keyboards, screens and buttons, but people don't think in APIs — we think in conversations. Veyra is an experiment in making voice the interface between humans and software: it listens, understands the intent behind what you say, reasons about what needs to happen, and eventually acts through connected tools and services.
 
-The goal isn't another voice chatbot. It's to explore what it takes to build a production-grade voice agent end to end — audio capture, speech recognition, reasoning, tool calling, memory, observability and reliable execution. Dictation is the first step.
-
-## Roadmap
-
-- [x] Local dictation with a global Fn hotkey
-- [ ] Transcript cleanup and formatting with a local LLM (Ollama)
-- [ ] App-aware modes (email, chat, code)
-- [ ] Voice commands and agent actions
-
-The full vision, principles and detailed roadmap are in [docs/VISION.md](docs/VISION.md).
+The goal isn't another voice chatbot. It's to explore what it takes to build a production-grade voice agent end to end — audio capture, speech recognition, reasoning, tool calling, memory, observability and reliable execution. Dictation is the first step. Read the full vision in [docs/VISION.md](docs/VISION.md).

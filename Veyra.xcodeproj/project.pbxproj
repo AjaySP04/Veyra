@@ -7,10 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		85AF98763045A3400011733D /* VeyraApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85AF98753045A3400011733D /* VeyraApp.swift */; };
-		85AF98783045A3400011733D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85AF98773045A3400011733D /* ContentView.swift */; };
-		85AF987A3045A3420011733D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 85AF98793045A3420011733D /* Assets.xcassets */; };
-		85AF98A53046FE4C0011733D /* AudioRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85AF98973046FC100011733D /* AudioRecorder.swift */; };
+		85C0FFEE0000000000000003 /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = 85C0FFEE0000000000000002 /* WhisperKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -24,18 +21,35 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		8565516E306C563900EE41FC /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		85AF98723045A3400011733D /* Veyra.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Veyra.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		85AF98753045A3400011733D /* VeyraApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VeyraApp.swift; sourceTree = "<group>"; };
-		85AF98773045A3400011733D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		85AF98793045A3420011733D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		85AF98843046CE6D0011733D /* VeyraTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VeyraTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		85AF98973046FC100011733D /* AudioRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRecorder.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		85AF98853046CE6D0011733D /* VeyraTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = VeyraTests;
+			sourceTree = "<group>";
+		};
+		85AF989E3046FD120011733D /* App */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = App;
+			sourceTree = "<group>";
+		};
+		85AF989F3046FD470011733D /* Features */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Features;
+			sourceTree = "<group>";
+		};
+		85AF98A03046FD740011733D /* Services */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Services;
+			sourceTree = "<group>";
+		};
+		85AF98A43046FDAA0011733D /* Resources */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Resources;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -45,6 +59,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				85C0FFEE0000000000000003 /* WhisperKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -61,6 +76,7 @@
 		85AF98693045A3400011733D = {
 			isa = PBXGroup;
 			children = (
+				8565516E306C563900EE41FC /* README.md */,
 				85AF98A43046FDAA0011733D /* Resources */,
 				85AF98A03046FD740011733D /* Services */,
 				85AF989F3046FD470011733D /* Features */,
@@ -79,54 +95,6 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		85AF989E3046FD120011733D /* App */ = {
-			isa = PBXGroup;
-			children = (
-				85AF98753045A3400011733D /* VeyraApp.swift */,
-			);
-			path = App;
-			sourceTree = "<group>";
-		};
-		85AF989F3046FD470011733D /* Features */ = {
-			isa = PBXGroup;
-			children = (
-				85AF98A63046FE710011733D /* Dictation */,
-			);
-			path = Features;
-			sourceTree = "<group>";
-		};
-		85AF98A03046FD740011733D /* Services */ = {
-			isa = PBXGroup;
-			children = (
-				85AF98A13046FD860011733D /* Audio */,
-			);
-			path = Services;
-			sourceTree = "<group>";
-		};
-		85AF98A13046FD860011733D /* Audio */ = {
-			isa = PBXGroup;
-			children = (
-				85AF98973046FC100011733D /* AudioRecorder.swift */,
-			);
-			path = Audio;
-			sourceTree = "<group>";
-		};
-		85AF98A43046FDAA0011733D /* Resources */ = {
-			isa = PBXGroup;
-			children = (
-				85AF98793045A3420011733D /* Assets.xcassets */,
-			);
-			path = Resources;
-			sourceTree = "<group>";
-		};
-		85AF98A63046FE710011733D /* Dictation */ = {
-			isa = PBXGroup;
-			children = (
-				85AF98773045A3400011733D /* ContentView.swift */,
-			);
-			path = Dictation;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -142,8 +110,15 @@
 			);
 			dependencies = (
 			);
+			fileSystemSynchronizedGroups = (
+				85AF989E3046FD120011733D /* App */,
+				85AF989F3046FD470011733D /* Features */,
+				85AF98A03046FD740011733D /* Services */,
+				85AF98A43046FDAA0011733D /* Resources */,
+			);
 			name = Veyra;
 			packageProductDependencies = (
+				85C0FFEE0000000000000002 /* WhisperKit */,
 			);
 			productName = Veyra;
 			productReference = 85AF98723045A3400011733D /* Veyra.app */;
@@ -200,6 +175,9 @@
 			);
 			mainGroup = 85AF98693045A3400011733D;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				85C0FFEE0000000000000001 /* XCRemoteSwiftPackageReference "argmax-oss-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 85AF98733045A3400011733D /* Products */;
 			projectDirPath = "";
@@ -216,7 +194,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				85AF987A3045A3420011733D /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -234,9 +211,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				85AF98A53046FE4C0011733D /* AudioRecorder.swift in Sources */,
-				85AF98783045A3400011733D /* ContentView.swift in Sources */,
-				85AF98763045A3400011733D /* VeyraApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -387,12 +361,14 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = Y26Q599L4W;
-				ENABLE_APP_SANDBOX = YES;
+				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Veyra listens while you hold Fn to transcribe your speech.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -419,12 +395,14 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = Y26Q599L4W;
-				ENABLE_APP_SANDBOX = YES;
+				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Veyra listens while you hold Fn to transcribe your speech.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -513,6 +491,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		85C0FFEE0000000000000001 /* XCRemoteSwiftPackageReference "argmax-oss-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/argmaxinc/argmax-oss-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.1.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		85C0FFEE0000000000000002 /* WhisperKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 85C0FFEE0000000000000001 /* XCRemoteSwiftPackageReference "argmax-oss-swift" */;
+			productName = WhisperKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 85AF986A3045A3400011733D /* Project object */;
 }

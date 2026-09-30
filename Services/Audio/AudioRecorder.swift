@@ -1,56 +1,63 @@
-//
-//  AudioRecorder.swift
-//  Veyra
-//
-//  Created by Ajay Singh Parmar on 01/09/2026.
-//
-
 import AVFoundation
+import os
 
-final class AudioRecorder {
-    
-    private let audioEngine: AVAudioEngine
-    private var audioFile: AVAudioFile?
-    
-    init() {
-        self.audioEngine = AVAudioEngine()
-//        self.audioFile = AVAudioFile()
-    }
-    
-    func startRecording() throws {
-        let inputNode = audioEngine.inputNode
+final class AudioRecorder: AudioCapturing {
+    var levelHandler: ((Float) -> Void)?
 
-        let inputFormat = inputNode.inputFormat(forBus: 0)
+    private let engine = AVAudioEngine()
+    private let buffer = SampleBuffer()
 
-        print("Sample rate: \(inputFormat.sampleRate)")
-        print("Channels: \(inputFormat.channelCount)")
-
-        inputNode.installTap(
-            onBus: 0,
-            bufferSize: 1024,
-            format: inputFormat
-        ) {
-            buffer, _ in
-            print("🔊 Received audio buffer")
-            print("Frames: \(buffer.frameLength)")
+    func start() throws {
+        let input = engine.inputNode
+        enableVoiceProcessing(on: input)
+        let format = input.outputFormat(forBus: 0)
+        guard format.sampleRate > 0, format.channelCount > 0 else {
+            throw AudioCaptureError.noInputDevice
         }
-        
-        
-        try audioEngine.start()
-        
-        print("🎙️ Recording started...")
-        
-    }
-    
-    func stopRecording() {
-        let inputNode = audioEngine.inputNode
-        
-        inputNode.removeTap(onBus: 0)
-        
-        if audioEngine.isRunning {
-            audioEngine.stop()
+        Logger.audio.info("Input \(format.sampleRate) Hz, \(format.channelCount) ch, voice processing \(input.isVoiceProcessingEnabled)")
+
+        let tap = Self.makeTap(resampler: try AudioResampler(inputFormat: format), buffer: buffer) { [weak self] level in
+            Task { @MainActor in self?.levelHandler?(level) }
         }
-        
-        print("🛑 Audio engine stopped")
+        input.installTap(onBus: 0, bufferSize: 4_096, format: format, block: tap)
+        engine.prepare()
+
+        do {
+            try engine.start()
+        } catch {
+            input.removeTap(onBus: 0)
+            throw error
+        }
+    }
+
+    func stop() -> [Float] {
+        engine.inputNode.removeTap(onBus: 0)
+        engine.stop()
+        let samples = buffer.drain()
+        Logger.audio.info("Captured \(samples.count) samples")
+        return samples
+    }
+
+    private func enableVoiceProcessing(on input: AVAudioInputNode) {
+        guard !input.isVoiceProcessingEnabled, (try? input.setVoiceProcessingEnabled(true)) != nil else { return }
+        input.voiceProcessingOtherAudioDuckingConfiguration = .init(enableAdvancedDucking: false, duckingLevel: .min)
+    }
+
+    private nonisolated static func makeTap(
+        resampler: AudioResampler,
+        buffer: SampleBuffer,
+        onLevel: @escaping @Sendable (Float) -> Void
+    ) -> AVAudioNodeTapBlock {
+        { pcm, _ in
+            let samples: [Float]
+            do {
+                samples = try resampler.convert(pcm)
+            } catch {
+                return Logger.audio.error("Conversion failed: \(error.localizedDescription, privacy: .public)")
+            }
+            guard !samples.isEmpty else { return }
+            buffer.append(samples)
+            onLevel(AudioLevel.normalized(samples))
+        }
     }
 }

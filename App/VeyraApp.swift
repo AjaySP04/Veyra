@@ -1,17 +1,14 @@
-//
-//  VeyraApp.swift
-//  Veyra
-//
-//  Created by Ajay Singh Parmar on 31/08/2026.
-//
-
 import SwiftUI
 
 @main
 struct VeyraApp: App {
+    @State private var dependencies = AppDependencies()
+
     var body: some Scene {
-        WindowGroup {
-            ContentView()
+        MenuBarExtra {
+            MenuBarView(coordinator: dependencies.coordinator, permissions: dependencies.permissions)
+        } label: {
+            Image(systemName: dependencies.coordinator.state.menuBarSymbol)
         }
     }
 }

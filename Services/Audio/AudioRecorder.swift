@@ -17,7 +17,7 @@ final class AudioRecorder: AudioCapturing {
         Logger.audio.info("Input \(format.sampleRate) Hz, \(format.channelCount) ch, voice processing \(input.isVoiceProcessingEnabled)")
 
         let tap = Self.makeTap(resampler: try AudioResampler(inputFormat: format), buffer: buffer) { [weak self] level in
-            Task { @MainActor in self?.levelHandler?(level) }
+            Task { @MainActor [self] in self?.levelHandler?(level) }
         }
         input.installTap(onBus: 0, bufferSize: 4_096, format: format, block: tap)
         engine.prepare()

@@ -1,4 +1,5 @@
 import AppKit
+import AVFoundation
 import SwiftUI
 
 struct MenuBarView: View {
@@ -17,6 +18,7 @@ struct MenuBarView: View {
             }
         }
         Divider()
+        Button("Microphone Mode…") { AVCaptureDevice.showSystemUserInterface(.microphoneModes) }
         Button("Quit Veyra") { NSApplication.shared.terminate(nil) }
             .keyboardShortcut("q")
     }

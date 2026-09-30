@@ -1,4 +1,5 @@
 import AVFoundation
+import os
 
 final class AudioRecorder: AudioCapturing {
     var levelHandler: ((Float) -> Void)?
@@ -13,6 +14,7 @@ final class AudioRecorder: AudioCapturing {
         guard format.sampleRate > 0, format.channelCount > 0 else {
             throw AudioCaptureError.noInputDevice
         }
+        Logger.audio.info("Input \(format.sampleRate) Hz, \(format.channelCount) ch, voice processing \(input.isVoiceProcessingEnabled)")
 
         let tap = Self.makeTap(resampler: try AudioResampler(inputFormat: format), buffer: buffer) { [weak self] level in
             Task { @MainActor in self?.levelHandler?(level) }
@@ -31,7 +33,9 @@ final class AudioRecorder: AudioCapturing {
     func stop() -> [Float] {
         engine.inputNode.removeTap(onBus: 0)
         engine.stop()
-        return buffer.drain()
+        let samples = buffer.drain()
+        Logger.audio.info("Captured \(samples.count) samples")
+        return samples
     }
 
     private func enableVoiceProcessing(on input: AVAudioInputNode) {
@@ -45,7 +49,13 @@ final class AudioRecorder: AudioCapturing {
         onLevel: @escaping @Sendable (Float) -> Void
     ) -> AVAudioNodeTapBlock {
         { pcm, _ in
-            guard let samples = try? resampler.convert(pcm), !samples.isEmpty else { return }
+            let samples: [Float]
+            do {
+                samples = try resampler.convert(pcm)
+            } catch {
+                return Logger.audio.error("Conversion failed: \(error.localizedDescription, privacy: .public)")
+            }
+            guard !samples.isEmpty else { return }
             buffer.append(samples)
             onLevel(AudioLevel.normalized(samples))
         }

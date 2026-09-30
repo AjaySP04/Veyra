@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import os
 
 @Observable
 final class DictationCoordinator {
@@ -80,7 +81,9 @@ final class DictationCoordinator {
 
     private func finishRecording() {
         let samples = audio.stop()
+        Logger.dictation.info("Clip \(samples.count) samples, level \(AudioLevel.normalized(samples))")
         guard isWorthTranscribing(samples) else {
+            Logger.dictation.info("Clip skipped as too short or silent")
             state = .idle
             return
         }
@@ -96,6 +99,7 @@ final class DictationCoordinator {
     private func transcribeAndInsert(_ samples: [Float]) async {
         do {
             let transcript = try await transcriber.transcribe(samples)
+            Logger.dictation.info("Transcript \(transcript.count) characters")
             if !transcript.isEmpty {
                 try await inserter.insert(try await processor.process(transcript))
             }
@@ -106,6 +110,7 @@ final class DictationCoordinator {
     }
 
     private func fail(_ message: String) {
+        Logger.dictation.error("\(message, privacy: .public)")
         state = .failed(message: message)
         recovery = Task { [failureDisplayDuration] in
             try? await Task.sleep(for: failureDisplayDuration)

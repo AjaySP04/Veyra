@@ -10,6 +10,7 @@ final class DictationCoordinator {
     private(set) var state: DictationState = .preparing(progress: nil)
     @ObservationIgnored private(set) var transcription: Task<Void, Never>?
     @ObservationIgnored private(set) var recovery: Task<Void, Never>?
+    @ObservationIgnored private var mode: DictationMode = .standard
 
     private let audio: AudioCapturing
     private let transcriber: Transcribing
@@ -17,6 +18,7 @@ final class DictationCoordinator {
     private let inserter: TextInserting
     private let hotkey: HotkeyMonitoring
     private let permissions: PermissionChecking
+    private let contextProvider: AppContextProviding
     private let failureDisplayDuration: Duration
 
     init(
@@ -26,6 +28,7 @@ final class DictationCoordinator {
         inserter: TextInserting,
         hotkey: HotkeyMonitoring,
         permissions: PermissionChecking,
+        contextProvider: AppContextProviding,
         failureDisplayDuration: Duration = .seconds(2)
     ) {
         self.audio = audio
@@ -34,6 +37,7 @@ final class DictationCoordinator {
         self.inserter = inserter
         self.hotkey = hotkey
         self.permissions = permissions
+        self.contextProvider = contextProvider
         self.failureDisplayDuration = failureDisplayDuration
     }
 
@@ -74,6 +78,8 @@ final class DictationCoordinator {
         do {
             try audio.start()
             state = .recording(level: 0)
+            mode = DictationMode(contextProvider.current())
+            Logger.dictation.info("Mode \(self.mode.rawValue, privacy: .public)")
         } catch {
             fail(error.localizedDescription)
         }
@@ -88,7 +94,7 @@ final class DictationCoordinator {
             return
         }
         state = .transcribing
-        transcription = Task { await transcribeAndInsert(samples) }
+        transcription = Task { [mode = self.mode] in await transcribeAndInsert(samples, mode: mode) }
     }
 
     private func cancelRecording() {
@@ -96,12 +102,12 @@ final class DictationCoordinator {
         state = .idle
     }
 
-    private func transcribeAndInsert(_ samples: [Float]) async {
+    private func transcribeAndInsert(_ samples: [Float], mode: DictationMode) async {
         do {
             let transcript = try await transcriber.transcribe(samples)
             Logger.dictation.info("Transcript \(transcript.count) characters")
             if !transcript.isEmpty {
-                try await inserter.insert(try await processor.process(transcript))
+                try await inserter.insert(try await processor.process(transcript, mode: mode))
             }
             state = .idle
         } catch {

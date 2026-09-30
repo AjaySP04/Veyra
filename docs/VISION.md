@@ -534,7 +534,7 @@ Cloud-based providers may eventually be supported as explicit user-selected alte
 - [x] Global keyboard shortcut
 - [x] Menu-bar application
 - [x] Accessibility permissions
-- [ ] Active application detection
+- [x] Active application detection
 - [x] Clipboard integration
 - [x] Text injection
 
@@ -544,18 +544,18 @@ Cloud-based providers may eventually be supported as explicit user-selected alte
 - [x] Select local LLM
 - [x] Transcript cleanup
 - [x] Grammar correction
-- [ ] Formatting
+- [x] Formatting
 - [ ] Structured outputs
 - [ ] Prompt management
 
 ## Phase 6 — Context Engineering
 
-- [ ] Detect active application
-- [ ] Application-specific prompts
-- [ ] Developer mode
-- [ ] Email mode
-- [ ] Chat mode
-- [ ] Terminal mode
+- [x] Detect active application
+- [x] Application-specific prompts
+- [x] Developer mode
+- [x] Email mode
+- [x] Chat mode
+- [x] Terminal mode
 - [ ] Context management
 
 ## Phase 7 — Voice Commands

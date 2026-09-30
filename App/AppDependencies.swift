@@ -14,7 +14,8 @@ final class AppDependencies {
             processor: OllamaTextProcessor(client: OllamaClient()),
             inserter: PasteboardTextInserter(pasteboard: NSPasteboard.general, keystrokes: CGEventKeystrokeSender()),
             hotkey: FnKeyMonitor(),
-            permissions: permissions
+            permissions: permissions,
+            contextProvider: FrontmostAppContextProvider()
         )
         self.permissions = permissions
         self.coordinator = coordinator

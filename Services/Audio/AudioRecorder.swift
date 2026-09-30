@@ -8,6 +8,7 @@ final class AudioRecorder: AudioCapturing {
 
     func start() throws {
         let input = engine.inputNode
+        enableVoiceProcessing(on: input)
         let format = input.outputFormat(forBus: 0)
         guard format.sampleRate > 0, format.channelCount > 0 else {
             throw AudioCaptureError.noInputDevice
@@ -31,6 +32,11 @@ final class AudioRecorder: AudioCapturing {
         engine.inputNode.removeTap(onBus: 0)
         engine.stop()
         return buffer.drain()
+    }
+
+    private func enableVoiceProcessing(on input: AVAudioInputNode) {
+        guard !input.isVoiceProcessingEnabled, (try? input.setVoiceProcessingEnabled(true)) != nil else { return }
+        input.voiceProcessingOtherAudioDuckingConfiguration = .init(enableAdvancedDucking: false, duckingLevel: .min)
     }
 
     private nonisolated static func makeTap(

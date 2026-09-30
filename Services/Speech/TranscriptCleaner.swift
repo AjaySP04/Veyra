@@ -10,6 +10,6 @@ enum TranscriptCleaner {
     }
 
     private static func isAnnotation(_ text: String) -> Bool {
-        text.wholeMatch(of: #/\(.*\)|\*.*\*/#) != nil
+        text.wholeMatch(of: #/\([^()]*\)|\*[^*]*\*/#) != nil
     }
 }

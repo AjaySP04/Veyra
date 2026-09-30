@@ -16,6 +16,7 @@ fi
 
 echo "Installing to /Applications…"
 pkill -x Veyra || true
+while pgrep -x Veyra > /dev/null; do sleep 0.1; done
 rm -rf /Applications/Veyra.app
 cp -R "$build_dir/Build/Products/Release/Veyra.app" /Applications/
 

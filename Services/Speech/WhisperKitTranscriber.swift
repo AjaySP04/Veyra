@@ -2,6 +2,8 @@ import Foundation
 import WhisperKit
 
 final class WhisperKitTranscriber: Transcribing {
+    private static let noSpeechThreshold: Float = 0.6
+
     private let variant: String
     private let downloadBase: URL
     private let decodingOptions: DecodingOptions
@@ -40,7 +42,12 @@ final class WhisperKitTranscriber: Transcribing {
     func transcribe(_ samples: [Float]) async throws -> String {
         guard let whisperKit else { throw TranscriptionError.modelNotLoaded }
         let results = try await whisperKit.transcribe(audioArray: samples, decodeOptions: decodingOptions)
-        return TranscriptCleaner.clean(results.map(\.text).joined(separator: " "))
+        return Self.speechText(from: results.flatMap(\.segments))
+    }
+
+    static func speechText(from segments: [TranscriptionSegment]) -> String {
+        let speech = segments.filter { $0.noSpeechProb <= noSpeechThreshold }
+        return TranscriptCleaner.clean(speech.map(\.text).joined(separator: " "))
     }
 
     static func decodingOptions(language: String) -> DecodingOptions {

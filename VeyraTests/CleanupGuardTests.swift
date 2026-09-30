@@ -14,6 +14,15 @@ struct CleanupGuardTests {
         ("okay", "Okay."),
         ("ok", "Okay."),
         ("um so like i like the new design", "So, I like the new design."),
+        ("so for tomorrow first we need to fix the login bug second update the docs and third deploy to staging",
+         "For tomorrow, we need to:\n- Fix the login bug.\n- Update the docs.\n- Deploy to staging."),
+        ("so for tomorrow first we need to fix the login bug second update the docs and third deploy to staging",
+         "So for tomorrow:\n- Fix the login bug.\n- Update the docs.\n- Deploy to staging."),
+        ("to set it up you install xcode then clone the repo then run the install script and finally grant permissions",
+         "To set it up:\n- Install Xcode.\n- Clone the repo.\n- Run the install script.\n- Grant permissions."),
+        ("a few things for the release um the icon is final the readme is updated and uh the tests all pass",
+         "A few things for the release:\n- The icon is final.\n- The readme is updated.\n- The tests all pass."),
+        ("i need to buy milk eggs bread and coffee", "I need to buy:\n- milk\n- eggs\n- bread\n- coffee"),
     ])
     func acceptsLightCleanup(original: String, cleaned: String) {
         #expect(CleanupGuard.accepts(original: original, cleaned: cleaned))

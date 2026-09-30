@@ -13,7 +13,7 @@ Private, unlimited voice dictation for macOS — hold <b>Fn</b>, speak, release,
 
 - **Works in any app** — Notes, Slack, VS Code, browsers, Terminal.
 - **Private by default** — Whisper runs on your Mac. No account, no usage limits, works offline.
-- **Clean text** — with [Ollama](https://ollama.com), filler words are removed and punctuation fixed by `gemma4` on your Mac. If you add `gemma4:cloud`, it is used whenever the local model is missing, too slow, or its reply is rejected.
+- **Clean text** — with [Ollama](https://ollama.com), filler words are removed, punctuation fixed, and spoken lists turned into bullet points by `gemma4` on your Mac. If you add `gemma4:cloud`, it is used whenever the local model is missing, too slow, or its reply is rejected.
 - **Noise-aware** — Apple voice processing plus optional Voice Isolation for busy rooms.
 - **Clipboard-safe** — your previous clipboard is restored after every paste.
 

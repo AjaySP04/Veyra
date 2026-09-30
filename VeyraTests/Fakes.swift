@@ -42,3 +42,78 @@ final class FakeKeystrokes: KeystrokeSending {
         sideEffect()
     }
 }
+
+struct TestError: LocalizedError {
+    var errorDescription: String? { "boom" }
+}
+
+@MainActor
+final class FakeAudio: AudioCapturing {
+    var levelHandler: ((Float) -> Void)?
+    var samples: [Float] = Array(repeating: 0.1, count: 16_000)
+    var startError: Error?
+    private(set) var isRecording = false
+
+    func start() throws {
+        if let startError { throw startError }
+        isRecording = true
+    }
+
+    func stop() -> [Float] {
+        isRecording = false
+        return samples
+    }
+}
+
+@MainActor
+final class FakeTranscriber: Transcribing {
+    var transcript = "hello world"
+    var prepareError: Error?
+    var transcribeError: Error?
+    private(set) var receivedSamples: [Float]?
+    private(set) var progressHandler: (@MainActor (Double) -> Void)?
+
+    func prepare(progress: @escaping @MainActor (Double) -> Void) async throws {
+        progressHandler = progress
+        if let prepareError { throw prepareError }
+    }
+
+    func transcribe(_ samples: [Float]) async throws -> String {
+        receivedSamples = samples
+        if let transcribeError { throw transcribeError }
+        return transcript
+    }
+}
+
+struct UppercasingProcessor: TextProcessing {
+    func process(_ text: String) async throws -> String { text.uppercased() }
+}
+
+@MainActor
+final class FakeInserter: TextInserting {
+    private(set) var inserted: [String] = []
+
+    func insert(_ text: String) async throws {
+        inserted.append(text)
+    }
+}
+
+@MainActor
+final class FakeHotkey: HotkeyMonitoring {
+    var handler: ((HotkeyEvent) -> Void)?
+    private(set) var startCount = 0
+
+    func start() { startCount += 1 }
+    func stop() {}
+
+    func send(_ events: HotkeyEvent...) {
+        events.forEach { handler?($0) }
+    }
+}
+
+@MainActor
+final class FakePermissions: PermissionChecking {
+    var denied: Set<Permission> = []
+
+    func isGranted(_ permission: Permission) -> Bool { !denied.contains(permission) }
+}

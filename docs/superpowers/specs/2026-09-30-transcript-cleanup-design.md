@@ -6,13 +6,13 @@
 
 ## Goal
 
-Before Veyra pastes a transcript, a language model gives it a light cleanup: filler words ("um", "uh", "basically", "you know") come out, punctuation and capitalization get fixed, and obvious transcription errors are corrected. The speaker's wording and meaning stay the same. Cleanup runs through Ollama. It prefers the free `gemma4:cloud` model, falls back to the local `gemma4:latest`, and pastes the raw transcript whenever no model is available.
+Before Veyra pastes a transcript, a language model gives it a light cleanup: filler words ("um", "uh", "basically", "you know") come out, punctuation and capitalization get fixed, and obvious transcription errors are corrected. The speaker's wording and meaning stay the same. Cleanup runs through Ollama. It prefers the local `gemma4:latest`, falls back to the free `gemma4:cloud` model, and pastes the raw transcript whenever no model is available.
 
 ## Success Criteria
 
 - "hey team uh basically payment integration is done and testing is left" is pasted as "Hey team, payment integration is done and testing is left."
 - A dictated question ("what time is the standup tomorrow") is cleaned ("What time is the standup tomorrow?"), never answered.
-- Cleanup adds about 0.5 s per dictation with the cloud model and about 0.4–0.6 s with a warm local model.
+- Cleanup adds about 0.4–0.6 s per dictation with a warm local model and about 0.5 s with the cloud model.
 - If Ollama is not installed, not running, or has neither model, dictation behaves exactly as it does today (raw transcript) and adds no noticeable delay.
 - Cleanup never produces an error state. Every failure path pastes the raw transcript.
 - Logs never contain the user's words.
@@ -31,8 +31,8 @@ Before Veyra pastes a transcript, a language model gives it a light cleanup: fil
 |---|---|---|
 | Cleanup level | Light touch: fillers, punctuation, capitalization, obvious mis-hearings | Owner's choice; least risk of changing what was said |
 | Runtime | Ollama HTTP API at `http://localhost:11434/api/chat`, called with `URLSession` | One JSON request; no new package dependency |
-| Model chain | `gemma4:cloud` (3 s timeout), then `gemma4:latest` (6 s timeout), then the raw transcript | Owner's choice. Benchmarks: the cloud model (served as `gemma4:31b`) was correct on all three samples in 0.53–0.54 s; `gemma4:latest` (7.5B, Q4_K_M) was correct on all three in 0.38–0.60 s warm and loaded in 5.3 s cold |
-| Cloud privacy | Cloud is used whenever the user is signed in to Ollama and has `gemma4:cloud` pulled | Owner's choice; README states it and says how to keep everything local |
+| Model chain | `gemma4:latest` (6 s timeout), then `gemma4:cloud` (3 s timeout), then the raw transcript | Owner's choice: local first when installed, since it is as fast as cloud and keeps text on the Mac. Benchmarks: `gemma4:latest` (7.5B, Q4_K_M) was correct on all three samples in 0.38–0.60 s warm and loaded in 5.3 s cold; the cloud model (served as `gemma4:31b`) was correct on all three in 0.53–0.54 s |
+| Cloud privacy | Cloud is used only when the local model is missing, fails, or times out, and only if the user is signed in to Ollama with `gemma4:cloud` pulled | Owner's choice; README states it and says how to keep everything local |
 | Drift protection | A prompt that wraps the transcript in tags, plus a pure word-overlap guard on the reply | Benchmark: `llama3.2` answered a dictated question instead of cleaning it |
 | Failure policy | Any error, timeout, or rejected reply moves to the next model; after the last model, return the raw transcript | Dictation must never fail because of cleanup |
 | Request options | `stream: false`, `think: false`, `temperature: 0`, `keep_alive: "30m"` | Deterministic, no reasoning latency, and the local model stays loaded between dictations |
@@ -98,8 +98,8 @@ struct CleanupModel: Equatable {
     let timeout: Duration
 
     static let chain: [CleanupModel] = [
-        CleanupModel(name: "gemma4:cloud", timeout: .seconds(3)),
         CleanupModel(name: "gemma4:latest", timeout: .seconds(6)),
+        CleanupModel(name: "gemma4:cloud", timeout: .seconds(3)),
     ]
 }
 
@@ -168,11 +168,12 @@ No changes. The overlay keeps showing the transcribing state until the paste, an
 | Condition | Result |
 |---|---|
 | Ollama not installed or not running | The connection is refused on each model, which is instant. The raw transcript is pasted. |
-| Not signed in, out of cloud credits, or `gemma4:cloud` not pulled | Cloud returns 401, 429 or 404. The local model is used. |
-| `gemma4:latest` not loaded yet | The first use may exceed 6 s and paste raw text. Ollama finishes loading it, so the next dictation is cleaned. |
+| `gemma4:latest` not pulled | Local returns 404. The cloud model is used. |
+| `gemma4:latest` not loaded yet | The first use may take up to 6 s, then the cloud model is tried. Ollama finishes loading the local model, so the next dictation is cleaned locally. |
+| Local unavailable, and not signed in, out of cloud credits, or `gemma4:cloud` not pulled | Cloud returns 401, 429 or 404. The raw transcript is pasted. |
 | Both models missing | The raw transcript is pasted. |
 | The model answers or rewrites | The guard rejects it and the next model is tried, then the raw transcript. |
-| Offline | Cloud fails with a transport error and the local model is used. |
+| Offline | The local model is used. Cloud is only reached if local fails, and then fails with a transport error. |
 
 ## Testing
 
@@ -203,14 +204,14 @@ All tests use Swift Testing and never touch the real network or Ollama.
   - each model is called with its own name and timeout;
   - an empty or whitespace-only transcript makes no calls.
 - **Manual check:**
-  1. Dictate with Ollama running and signed in, and confirm cloud cleanup.
-  2. Sign out or go offline, and confirm local cleanup.
+  1. Dictate with `gemma4:latest` installed, and confirm local cleanup.
+  2. Remove the local model (`ollama rm gemma4:latest`), confirm cloud cleanup, then pull it again.
   3. Quit Ollama, and confirm the raw transcript is pasted with no delay.
 
 ## Docs
 
 - **README:**
-  - The "Fully local" feature line explains that cleanup uses `gemma4:cloud` through Ollama when available, runs locally with `gemma4:latest` otherwise, and is skipped without Ollama.
-  - A short "Transcript cleanup (optional)" section covers installing Ollama, `ollama pull gemma4:latest`, `ollama signin` plus `ollama pull gemma4:cloud` for cloud, and `ollama rm gemma4:cloud` to keep everything on the Mac.
+  - The "Fully local" feature line explains that cleanup runs locally with `gemma4:latest` through Ollama, falls back to `gemma4:cloud` only when the local model is unavailable, and is skipped without Ollama.
+  - A short "Transcript cleanup (optional)" section covers installing Ollama, `ollama pull gemma4:latest`, `ollama signin` plus `ollama pull gemma4:cloud` for cloud, and `ollama rm gemma4:cloud` to make sure nothing ever leaves the Mac.
 - **AGENTS.md:** the roadmap item is checked.
 - **docs/VISION.md:** the Phase 5 items "Integrate Ollama", "Select local LLM", "Transcript cleanup", "Grammar correction" are checked.

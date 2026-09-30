@@ -27,6 +27,11 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		85AF98853046CE6D0011733D /* VeyraTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = VeyraTests;
+			sourceTree = "<group>";
+		};
 		85AF989E3046FD120011733D /* App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = App;
@@ -45,11 +50,6 @@
 		85AF98A43046FDAA0011733D /* Resources */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Resources;
-			sourceTree = "<group>";
-		};
-		85AF98853046CE6D0011733D /* VeyraTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = VeyraTests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -113,8 +113,8 @@
 			fileSystemSynchronizedGroups = (
 				85AF989E3046FD120011733D /* App */,
 				85AF989F3046FD470011733D /* Features */,
-				85AF98A43046FDAA0011733D /* Resources */,
 				85AF98A03046FD740011733D /* Services */,
+				85AF98A43046FDAA0011733D /* Resources */,
 			);
 			name = Veyra;
 			packageProductDependencies = (

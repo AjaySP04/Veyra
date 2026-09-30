@@ -25,7 +25,9 @@ final class RecordingOverlayController {
         panel.hasShadow = false
         panel.ignoresMouseEvents = true
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
-        panel.contentView = NSHostingView(rootView: RecordingPill(coordinator: coordinator))
+        let hostingView = NSHostingView(rootView: RecordingPill(coordinator: coordinator))
+        hostingView.sizingOptions = []
+        panel.contentView = hostingView
     }
 
     func start() {
@@ -37,6 +39,7 @@ final class RecordingOverlayController {
     }
 
     private func setVisible(_ isVisible: Bool) {
+        guard isVisible != panel.isVisible else { return }
         guard isVisible, let screen = NSScreen.main?.visibleFrame else {
             return panel.orderOut(nil)
         }

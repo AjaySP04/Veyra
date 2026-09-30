@@ -28,6 +28,8 @@ enum DictationMode: String, Equatable {
         "dev.warp.Warp-Stable": .terminal,
     ]
 
+    private static let clauseEndings: Set<Character> = [".", ",", ":", ";", "!", "?"]
+
     private static let siteModes: [String: DictationMode] = [
         "gmail": .email,
         "outlook": .email,
@@ -45,10 +47,15 @@ enum DictationMode: String, Equatable {
 
     func finalize(_ text: String) -> String {
         guard self == .terminal else { return text }
-        return text.split(whereSeparator: \.isNewline)
+        let lines = text.split(whereSeparator: \.isNewline)
             .map { $0.trimmingCharacters(in: .whitespaces).replacing(#/^[-*•]\s+/#, with: "") }
             .filter { !$0.isEmpty }
-            .joined(separator: " ")
+        let joined = lines.reduce("") { text, line in
+            guard let last = text.last else { return line }
+            return text + (Self.clauseEndings.contains(last) ? " " : "; ") + line
+        }
+        return joined
+            .replacing(#/([.:;!?])\s+[-*•]\s+/#) { "\($0.output.1) " }
             .replacing(#/\s+/#, with: " ")
     }
 

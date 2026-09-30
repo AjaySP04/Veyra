@@ -32,7 +32,7 @@ struct OllamaTextProcessor: TextProcessing {
                 return nil
             }
             let milliseconds = Int((ContinuousClock.now - start) / .milliseconds(1))
-            Logger.cleanup.info("\(model.name, privacy: .public) cleaned \(text.count) → \(reply.count) characters in \(milliseconds) ms")
+            Logger.cleanup.info("\(model.name, privacy: .public) cleaned \(text.count) → \(reply.count) characters, \(reply.split(whereSeparator: \.isNewline).count) lines, in \(milliseconds) ms")
             return reply
         } catch {
             Logger.cleanup.info("\(model.name, privacy: .public) failed: \(String(describing: error), privacy: .public)")

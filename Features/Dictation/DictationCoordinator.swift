@@ -75,11 +75,11 @@ final class DictationCoordinator {
         if let missing = Permission.allCases.first(where: { !permissions.isGranted($0) }) {
             return fail("\(missing.title) access is required")
         }
-        mode = DictationMode(contextProvider.current())
-        Logger.dictation.info("Mode \(self.mode.rawValue, privacy: .public)")
         do {
             try audio.start()
             state = .recording(level: 0)
+            mode = DictationMode(contextProvider.current())
+            Logger.dictation.info("Mode \(self.mode.rawValue, privacy: .public)")
         } catch {
             fail(error.localizedDescription)
         }

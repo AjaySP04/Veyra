@@ -2,6 +2,8 @@ import AppKit
 import ApplicationServices
 
 struct FrontmostAppContextProvider: AppContextProviding {
+    private static let messagingTimeout: Float = 0.25
+
     func current() -> AppContext {
         let app = NSWorkspace.shared.frontmostApplication
         return AppContext(
@@ -12,9 +14,12 @@ struct FrontmostAppContextProvider: AppContextProviding {
 
     private func focusedWindowTitle(of processIdentifier: pid_t) -> String? {
         let application = AXUIElementCreateApplication(processIdentifier)
+        AXUIElementSetMessagingTimeout(application, Self.messagingTimeout)
         guard let window = attribute(kAXFocusedWindowAttribute, of: application),
               CFGetTypeID(window) == AXUIElementGetTypeID() else { return nil }
-        return attribute(kAXTitleAttribute, of: window as! AXUIElement) as? String
+        let focusedWindow = window as! AXUIElement
+        AXUIElementSetMessagingTimeout(focusedWindow, Self.messagingTimeout)
+        return attribute(kAXTitleAttribute, of: focusedWindow) as? String
     }
 
     private func attribute(_ name: String, of element: AXUIElement) -> CFTypeRef? {

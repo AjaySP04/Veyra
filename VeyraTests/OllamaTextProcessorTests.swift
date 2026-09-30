@@ -101,7 +101,7 @@ struct OllamaTextProcessorTests {
     }
 
     @Test func terminalRawFallbackIsFlattened() async throws {
-        #expect(try await process("first line\nsecond line", mode: .terminal) == "first line second line")
+        #expect(try await process("first line\nsecond line", mode: .terminal) == "first line; second line")
     }
 
     @Test func emailKeepsMultilineReply() async throws {

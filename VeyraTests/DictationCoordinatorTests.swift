@@ -202,4 +202,13 @@ struct DictationCoordinatorTests {
         await dictate(coordinator)
         #expect(processor.modes == [.email, .terminal])
     }
+
+    @Test func recordingStartsBeforeAppContextIsRead() async {
+        var recordingWhenRead: Bool?
+        context.onRead = { [audio] in recordingWhenRead = audio.isRecording }
+        let coordinator = await readyCoordinator()
+        hotkey.send(.pressed)
+        #expect(recordingWhenRead == true)
+        #expect(coordinator.state == .recording(level: 0))
+    }
 }

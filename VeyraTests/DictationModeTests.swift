@@ -70,4 +70,14 @@ struct DictationModeTests {
         let reply = "Hi John,\n\n- One\n- Two"
         #expect(mode.finalize(reply) == reply)
     }
+
+    @Test(arguments: [
+        ("A few things: - Rename it. - Ship it.", "A few things: Rename it. Ship it."),
+        ("Todo:\n- fix login\n- update docs", "Todo: fix login; update docs"),
+        ("5 - 3 is 2", "5 - 3 is 2"),
+        ("Run the foo - bar script", "Run the foo - bar script"),
+    ])
+    func terminalRemovesInlineBulletsAndSeparatesItems(reply: String, expected: String) {
+        #expect(DictationMode.terminal.finalize(reply) == expected)
+    }
 }

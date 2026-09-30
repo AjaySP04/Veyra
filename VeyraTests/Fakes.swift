@@ -138,8 +138,12 @@ final class FakeChatCompleter: ChatCompleting {
 @MainActor
 final class FakeAppContextProvider: AppContextProviding {
     var context = AppContext(bundleIdentifier: nil, windowTitle: nil)
+    var onRead: () -> Void = {}
 
-    func current() -> AppContext { context }
+    func current() -> AppContext {
+        onRead()
+        return context
+    }
 }
 
 @MainActor

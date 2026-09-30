@@ -17,13 +17,36 @@ struct OllamaClient: ChatCompleting {
         return reply.message.content
     }
 
+    func warmUp(_ model: String) {
+        guard let request = try? warmUpRequest(for: model) else { return }
+        Task { [session] in _ = try? await session.data(for: request) }
+    }
+
     func urlRequest(for request: ChatRequest) throws -> URLRequest {
-        var urlRequest = URLRequest(url: baseURL.appending(path: "api/chat"))
+        try post("api/chat", body: ChatBody(request), timeout: request.timeout)
+    }
+
+    func warmUpRequest(for model: String) throws -> URLRequest {
+        try post("api/generate", body: WarmUpBody(model: model), timeout: .seconds(300))
+    }
+
+    private func post(_ path: String, body: some Encodable, timeout: Duration) throws -> URLRequest {
+        var urlRequest = URLRequest(url: baseURL.appending(path: path))
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        urlRequest.timeoutInterval = request.timeout / .seconds(1)
-        urlRequest.httpBody = try JSONEncoder().encode(ChatBody(request))
+        urlRequest.timeoutInterval = timeout / .seconds(1)
+        urlRequest.httpBody = try JSONEncoder().encode(body)
         return urlRequest
+    }
+}
+
+private nonisolated struct WarmUpBody: Encodable {
+    let model: String
+    let keepAlive = ChatBody.keepAlive
+
+    enum CodingKeys: String, CodingKey {
+        case model
+        case keepAlive = "keep_alive"
     }
 }
 
@@ -41,7 +64,9 @@ private nonisolated struct ChatBody: Encodable {
     let messages: [Message]
     let stream = false
     let think = false
-    let keepAlive = "30m"
+    static let keepAlive = "30m"
+
+    let keepAlive = Self.keepAlive
     let options = Options(temperature: 0)
 
     enum CodingKeys: String, CodingKey {

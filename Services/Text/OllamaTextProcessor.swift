@@ -32,6 +32,7 @@ struct OllamaTextProcessor: TextProcessing {
             return reply
         } catch {
             Logger.cleanup.info("\(model.name, privacy: .public) failed: \(String(describing: error), privacy: .public)")
+            if (error as? URLError)?.code == .timedOut { client.warmUp(model.name) }
             return nil
         }
     }
@@ -41,7 +42,7 @@ struct OllamaTextProcessor: TextProcessing {
             model: model.name,
             system: CleanupPrompt.system,
             user: CleanupPrompt.userMessage(for: text),
-            timeout: model.timeout
+            timeout: model.timeout(forWordCount: CleanupGuard.words(in: text).count)
         )
     }
 }

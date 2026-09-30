@@ -31,7 +31,7 @@ Before Veyra pastes a transcript, a language model gives it a light cleanup: fil
 |---|---|---|
 | Cleanup level | Light touch: fillers, punctuation, capitalization, obvious mis-hearings | Owner's choice; least risk of changing what was said |
 | Runtime | Ollama HTTP API at `http://localhost:11434/api/chat`, called with `URLSession` | One JSON request; no new package dependency |
-| Model chain | `gemma4:latest` (6 s timeout), then `gemma4:cloud` (3 s timeout), then the raw transcript | Owner's choice: local first when installed, since it is as fast as cloud and keeps text on the Mac. Benchmarks: `gemma4:latest` (7.5B, Q4_K_M) was correct on all three samples in 0.38–0.60 s warm and loaded in 5.3 s cold; the cloud model (served as `gemma4:31b`) was correct on all three in 0.53–0.54 s |
+| Model chain | `gemma4:latest` (6 s + 30 ms per word), then `gemma4:cloud` (3 s + 10 ms per word), then the raw transcript | Owner's choice: local first when installed, since it is as fast as cloud and keeps text on the Mac. Benchmarks: `gemma4:latest` (7.5B, Q4_K_M) was correct on all three samples in 0.38–0.60 s warm and loaded in 5.3 s cold; the cloud model (served as `gemma4:31b`) was correct on all three in 0.53–0.54 s |
 | Cloud privacy | Cloud is used only when the local model is missing, fails, or times out, and only if the user is signed in to Ollama with `gemma4:cloud` pulled | Owner's choice; README states it and says how to keep everything local |
 | Drift protection | A prompt that wraps the transcript in tags, plus a pure word-overlap guard on the reply | Benchmark: `llama3.2` answered a dictated question instead of cleaning it |
 | Failure policy | Any error, timeout, or rejected reply moves to the next model; after the last model, return the raw transcript | Dictation must never fail because of cleanup |
@@ -169,7 +169,7 @@ No changes. The overlay keeps showing the transcribing state until the paste, an
 |---|---|
 | Ollama not installed or not running | The connection is refused on each model, which is instant. The raw transcript is pasted. |
 | `gemma4:latest` not pulled | Local returns 404. The cloud model is used. |
-| `gemma4:latest` not loaded yet | The first use may take up to 6 s, then the cloud model is tried. Ollama finishes loading the local model, so the next dictation is cleaned locally. |
+| `gemma4:latest` not loaded yet | The first use may time out, then the cloud model is tried. Ollama abandons a load when the request times out, so Veyra sends a separate background warm-up (`POST /api/generate` with `keep_alive: "30m"`, 300 s timeout), and the next dictation is cleaned locally. |
 | Local unavailable, and not signed in, out of cloud credits, or `gemma4:cloud` not pulled | Cloud returns 401, 429 or 404. The raw transcript is pasted. |
 | Both models missing | The raw transcript is pasted. |
 | The model answers or rewrites | The guard rejects it and the next model is tried, then the raw transcript. |

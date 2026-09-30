@@ -12,6 +12,8 @@ struct CleanupGuardTests {
         ("i red the book yesterday", "I read the book yesterday."),
         ("see you at the stand up", "See you at the stand-up."),
         ("okay", "Okay."),
+        ("ok", "Okay."),
+        ("um so like i like the new design", "So, I like the new design."),
     ])
     func acceptsLightCleanup(original: String, cleaned: String) {
         #expect(CleanupGuard.accepts(original: original, cleaned: cleaned))
@@ -23,6 +25,8 @@ struct CleanupGuardTests {
         ("can you write me a poem about the ocean",
          "The ocean rolls in silver light, waves that whisper through the night."),
         ("hey team uh basically payment integration is done and testing is left", "Payment is done."),
+        ("summarize this for me the meeting is moved to friday", "The meeting is moved to Friday."),
+        ("can you remind me what the capital of france is", "The capital of France is Paris."),
         ("hello there", ""),
         ("hello there", " … "),
     ])

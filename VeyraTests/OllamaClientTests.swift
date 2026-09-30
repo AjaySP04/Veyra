@@ -45,6 +45,15 @@ struct OllamaClientTests {
         #expect(messages == [["role": "system", "content": "sys"], ["role": "user", "content": "hello"]])
     }
 
+    @Test func buildsWarmUpRequest() throws {
+        let urlRequest = try client.warmUpRequest(for: "gemma4:latest")
+        #expect(urlRequest.url?.absoluteString == "http://localhost:11434/api/generate")
+        #expect(urlRequest.httpMethod == "POST")
+        #expect(urlRequest.timeoutInterval == 300)
+        let body = try #require(JSONSerialization.jsonObject(with: urlRequest.httpBody ?? Data()) as? [String: String])
+        #expect(body == ["model": "gemma4:latest", "keep_alive": "30m"])
+    }
+
     @Test func returnsMessageContent() async throws {
         StubURLProtocol.status = 200
         StubURLProtocol.body = Data(#"{"message":{"role":"assistant","content":"Hello."},"done":true}"#.utf8)

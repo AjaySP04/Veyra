@@ -13,7 +13,7 @@ Private, unlimited voice dictation for macOS — hold <b>Fn</b>, speak, release,
 
 - **Works in any app** — Notes, Slack, VS Code, browsers, Terminal.
 - **Private by default** — Whisper runs on your Mac. No account, no usage limits, works offline.
-- **Clean text** — with [Ollama](https://ollama.com), filler words are removed and punctuation fixed by `gemma4` on your Mac, falling back to `gemma4:cloud` only when the local model is unavailable.
+- **Clean text** — with [Ollama](https://ollama.com), filler words are removed and punctuation fixed by `gemma4` on your Mac. If you add `gemma4:cloud`, it is used whenever the local model is missing, too slow, or its reply is rejected.
 - **Noise-aware** — Apple voice processing plus optional Voice Isolation for busy rooms.
 - **Clipboard-safe** — your previous clipboard is restored after every paste.
 
@@ -52,7 +52,6 @@ macOS only grants microphone and keyboard access to signed apps, so the build mu
    - **Bundle Identifier:** change `com.ajaysparmar.Veyra` to something unique, such as `com.yourname.Veyra`.
 4. Close Xcode.
 
-Skip this step if you're the project owner.
 
 ### 4. Build and install
 
@@ -89,7 +88,7 @@ Without Ollama, Veyra pastes exactly what Whisper heard. To remove filler words 
    ollama pull gemma4:cloud
    ```
 
-Veyra picks this up automatically; no restart is needed. Cloud cleanup sends your dictated text to ollama.com. Run `ollama rm gemma4:cloud` to keep everything on your Mac.
+Veyra picks this up automatically; no restart is needed. The cloud model is used whenever the local one is missing, too slow, or its reply is rejected, and that sends your dictated text to ollama.com. Run `ollama rm gemma4:cloud` to keep everything on your Mac.
 
 ## Usage
 
@@ -122,8 +121,8 @@ log stream --level info --predicate 'subsystem == "com.ajaysparmar.Veyra"'
 ## Update and uninstall
 
 ```bash
-# Update
-git pull && ./scripts/install.sh
+# Update (stash keeps your signing changes from step 3)
+git stash && git pull && git stash pop && ./scripts/install.sh
 
 # Uninstall (use your own bundle identifier if you changed it)
 pkill -x Veyra

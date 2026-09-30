@@ -9,6 +9,7 @@ struct ChatRequest: Equatable {
 
 protocol ChatCompleting {
     func complete(_ request: ChatRequest) async throws -> String
+    func warmUp(_ model: String)
 }
 
 enum ChatError: Error, Equatable {

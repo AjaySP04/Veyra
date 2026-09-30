@@ -122,6 +122,11 @@ final class FakePermissions: PermissionChecking {
 final class FakeChatCompleter: ChatCompleting {
     var replies: [String: Result<String, Error>] = [:]
     private(set) var requests: [ChatRequest] = []
+    private(set) var warmedUpModels: [String] = []
+
+    func warmUp(_ model: String) {
+        warmedUpModels.append(model)
+    }
 
     func complete(_ request: ChatRequest) async throws -> String {
         requests.append(request)

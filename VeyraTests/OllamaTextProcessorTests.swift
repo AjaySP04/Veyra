@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import Veyra
 
@@ -5,8 +6,8 @@ import Testing
 struct OllamaTextProcessorTests {
     private let transcript = "hey team uh payment integration is done"
     private let models = [
-        CleanupModel(name: "local", timeout: .seconds(6)),
-        CleanupModel(name: "cloud", timeout: .seconds(3)),
+        CleanupModel(name: "local", baseTimeout: .seconds(6), timeoutPerWord: .zero),
+        CleanupModel(name: "cloud", baseTimeout: .seconds(3), timeoutPerWord: .zero),
     ]
     private let client = FakeChatCompleter()
 
@@ -16,8 +17,8 @@ struct OllamaTextProcessorTests {
 
     @Test func defaultChainPrefersLocalThenCloud() {
         #expect(CleanupModel.chain == [
-            CleanupModel(name: "gemma4:latest", timeout: .seconds(6)),
-            CleanupModel(name: "gemma4:cloud", timeout: .seconds(3)),
+            CleanupModel(name: "gemma4:latest", baseTimeout: .seconds(6), timeoutPerWord: .milliseconds(30)),
+            CleanupModel(name: "gemma4:cloud", baseTimeout: .seconds(3), timeoutPerWord: .milliseconds(10)),
         ])
     }
 
@@ -68,5 +69,24 @@ struct OllamaTextProcessorTests {
     func textWithoutWordsSkipsCleanup(text: String) async throws {
         #expect(try await process(text) == text)
         #expect(client.requests.isEmpty)
+    }
+
+    @Test func timeoutGrowsWithTranscriptLength() async throws {
+        let model = CleanupModel(name: "local", baseTimeout: .seconds(6), timeoutPerWord: .milliseconds(30))
+        let longTranscript = Array(repeating: "word", count: 300).joined(separator: " ")
+        _ = try await OllamaTextProcessor(client: client, models: [model]).process(longTranscript)
+        #expect(client.requests.map(\.timeout) == [.seconds(15)])
+    }
+
+    @Test func timedOutModelIsWarmedUpInBackground() async throws {
+        client.replies = ["local": .failure(URLError(.timedOut))]
+        _ = try await process(transcript)
+        #expect(client.warmedUpModels == ["local"])
+    }
+
+    @Test func otherFailuresDoNotWarmUp() async throws {
+        client.replies = ["local": .failure(ChatError.badStatus(404)), "cloud": .failure(URLError(.cannotConnectToHost))]
+        _ = try await process(transcript)
+        #expect(client.warmedUpModels.isEmpty)
     }
 }

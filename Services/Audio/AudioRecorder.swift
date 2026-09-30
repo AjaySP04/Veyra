@@ -1,56 +1,47 @@
-//
-//  AudioRecorder.swift
-//  Veyra
-//
-//  Created by Ajay Singh Parmar on 01/09/2026.
-//
-
 import AVFoundation
 
-final class AudioRecorder {
-    
-    private let audioEngine: AVAudioEngine
-    private var audioFile: AVAudioFile?
-    
-    init() {
-        self.audioEngine = AVAudioEngine()
-//        self.audioFile = AVAudioFile()
-    }
-    
-    func startRecording() throws {
-        let inputNode = audioEngine.inputNode
+final class AudioRecorder: AudioCapturing {
+    var levelHandler: ((Float) -> Void)?
 
-        let inputFormat = inputNode.inputFormat(forBus: 0)
+    private let engine = AVAudioEngine()
+    private let buffer = SampleBuffer()
 
-        print("Sample rate: \(inputFormat.sampleRate)")
-        print("Channels: \(inputFormat.channelCount)")
-
-        inputNode.installTap(
-            onBus: 0,
-            bufferSize: 1024,
-            format: inputFormat
-        ) {
-            buffer, _ in
-            print("🔊 Received audio buffer")
-            print("Frames: \(buffer.frameLength)")
+    func start() throws {
+        let input = engine.inputNode
+        let format = input.outputFormat(forBus: 0)
+        guard format.sampleRate > 0, format.channelCount > 0 else {
+            throw AudioCaptureError.noInputDevice
         }
-        
-        
-        try audioEngine.start()
-        
-        print("🎙️ Recording started...")
-        
-    }
-    
-    func stopRecording() {
-        let inputNode = audioEngine.inputNode
-        
-        inputNode.removeTap(onBus: 0)
-        
-        if audioEngine.isRunning {
-            audioEngine.stop()
+
+        let tap = Self.makeTap(resampler: try AudioResampler(inputFormat: format), buffer: buffer) { [weak self] level in
+            Task { @MainActor in self?.levelHandler?(level) }
         }
-        
-        print("🛑 Audio engine stopped")
+        input.installTap(onBus: 0, bufferSize: 4_096, format: format, block: tap)
+        engine.prepare()
+
+        do {
+            try engine.start()
+        } catch {
+            input.removeTap(onBus: 0)
+            throw error
+        }
+    }
+
+    func stop() -> [Float] {
+        engine.inputNode.removeTap(onBus: 0)
+        engine.stop()
+        return buffer.drain()
+    }
+
+    private nonisolated static func makeTap(
+        resampler: AudioResampler,
+        buffer: SampleBuffer,
+        onLevel: @escaping @Sendable (Float) -> Void
+    ) -> AVAudioNodeTapBlock {
+        { pcm, _ in
+            guard let samples = try? resampler.convert(pcm), !samples.isEmpty else { return }
+            buffer.append(samples)
+            onLevel(AudioLevel.normalized(samples))
+        }
     }
 }

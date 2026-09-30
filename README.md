@@ -4,8 +4,8 @@
 
 <h1 align="center">Veyra</h1>
 
-<p align="center"><b>Private, unlimited voice dictation for macOS.</b><br>
-Hold <b>Fn</b>, speak, release — your words appear wherever your cursor is.</p>
+<p align="center"><b>Your voice, understood.</b><br>
+Private, unlimited voice dictation for macOS — hold <b>Fn</b>, speak, release, and your words appear wherever your cursor is.</p>
 
 ---
 
@@ -94,6 +94,14 @@ Fn ─► FnKeyMonitor ─► DictationCoordinator ─► AudioRecorder ─► W
 ```
 
 Built with Swift, SwiftUI, AVFoundation and [WhisperKit](https://github.com/argmaxinc/argmax-oss-swift). Each service sits behind a protocol, so engines can be swapped and the coordinator is tested with fakes.
+
+## The story behind Veyra
+
+The name blends **voice**, **clarity** and **presence**: **Ve** for *voice*, **yra** for *your assistant*.
+
+We talk to machines through keyboards, screens and buttons, but people don't think in APIs — we think in conversations. Veyra is an experiment in making voice the interface between humans and software: it listens, understands the intent behind what you say, reasons about what needs to happen, and eventually acts through connected tools and services.
+
+The goal isn't another voice chatbot. It's to explore what it takes to build a production-grade voice agent end to end — audio capture, speech recognition, reasoning, tool calling, memory, observability and reliable execution. Dictation is the first step.
 
 ## Roadmap
 

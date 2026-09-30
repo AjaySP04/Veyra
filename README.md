@@ -661,6 +661,18 @@ Playback verification
 
 ---
 
+# Using Veyra
+
+1. Build and run the `Veyra` scheme. A microphone icon appears in the menu bar.
+2. Grant **Microphone** and **Accessibility** access when prompted (or from the menu).
+3. Set **System Settings → Keyboard → Press 🌐 key to → Do Nothing** so Fn doesn't open the emoji picker.
+4. The first launch downloads the Whisper `large-v3-turbo` model (~1.6 GB) into `~/Library/Application Support/Veyra/Models`. After that Veyra works offline.
+5. Hold **Fn**, speak, release. The text is pasted where your cursor is.
+
+If dictation stops working after a rebuild, remove Veyra from **Privacy & Security → Accessibility** and add it again.
+
+---
+
 # Development Philosophy
 
 Veyra is intentionally built slowly.

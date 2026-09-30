@@ -2,25 +2,21 @@ import Foundation
 import WhisperKit
 
 final class WhisperKitTranscriber: Transcribing {
-    private static let decodingOptions = DecodingOptions(
-        detectLanguage: true,
-        skipSpecialTokens: true,
-        withoutTimestamps: true,
-        chunkingStrategy: .vad
-    )
-
     private let variant: String
     private let downloadBase: URL
+    private let decodingOptions: DecodingOptions
     private let cache: ModelFolderCache
     private var whisperKit: WhisperKit?
 
     init(
         variant: String = "large-v3-v20240930_turbo",
+        language: String = "en",
         downloadBase: URL = .applicationSupportDirectory.appending(path: "Veyra/Models"),
         defaults: UserDefaults = .standard
     ) {
         self.variant = variant
         self.downloadBase = downloadBase
+        self.decodingOptions = Self.decodingOptions(language: language)
         self.cache = ModelFolderCache(defaults: defaults, key: "modelFolder.\(variant)")
     }
 
@@ -43,8 +39,18 @@ final class WhisperKitTranscriber: Transcribing {
 
     func transcribe(_ samples: [Float]) async throws -> String {
         guard let whisperKit else { throw TranscriptionError.modelNotLoaded }
-        let results = try await whisperKit.transcribe(audioArray: samples, decodeOptions: Self.decodingOptions)
+        let results = try await whisperKit.transcribe(audioArray: samples, decodeOptions: decodingOptions)
         return TranscriptCleaner.clean(results.map(\.text).joined(separator: " "))
+    }
+
+    static func decodingOptions(language: String) -> DecodingOptions {
+        DecodingOptions(
+            language: language,
+            detectLanguage: false,
+            skipSpecialTokens: true,
+            withoutTimestamps: true,
+            chunkingStrategy: .vad
+        )
     }
 
     private func modelFolder(progress: @escaping @MainActor (Double) -> Void) async throws -> URL {

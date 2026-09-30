@@ -11,7 +11,7 @@ final class AppDependencies {
         let coordinator = DictationCoordinator(
             audio: AudioRecorder(),
             transcriber: WhisperKitTranscriber(),
-            processor: PassthroughTextProcessor(),
+            processor: OllamaTextProcessor(client: OllamaClient()),
             inserter: PasteboardTextInserter(pasteboard: NSPasteboard.general, keystrokes: CGEventKeystrokeSender()),
             hotkey: FnKeyMonitor(),
             permissions: permissions

@@ -7,7 +7,7 @@ nonisolated final class AudioResampler: @unchecked Sendable {
         guard let converter = AVAudioConverter(from: inputFormat, to: AudioFormat.transcription) else {
             throw AudioCaptureError.unsupportedFormat
         }
-        converter.downmix = true
+        converter.channelMap = [0]
         self.converter = converter
     }
 

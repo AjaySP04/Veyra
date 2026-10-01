@@ -20,7 +20,8 @@ struct InstalledAppDirectory: AppListing {
         let directories = ["/Applications", "/Applications/Utilities", "/System/Applications", "/System/Applications/Utilities"]
             .map { URL(filePath: $0, directoryHint: .isDirectory) }
             + [fileManager.homeDirectoryForCurrentUser.appending(path: "Applications", directoryHint: .isDirectory)]
-        return directories.flatMap { directory in
+        let finder = InstalledApp(name: "Finder", url: URL(filePath: "/System/Library/CoreServices/Finder.app"))
+        return [finder] + directories.flatMap { directory in
             ((try? fileManager.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? [])
                 .filter { $0.pathExtension == "app" }
                 .map { InstalledApp(name: $0.deletingPathExtension().lastPathComponent, url: $0) }

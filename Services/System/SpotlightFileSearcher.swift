@@ -6,7 +6,6 @@ protocol FileSearching {
 
 final class SpotlightFileSearcher: FileSearching {
     private static let timeout: Duration = .seconds(2)
-    private static let resultLimit = 500
 
     func search(_ words: [String], foldersOnly: Bool) async -> [FileResult] {
         guard !words.isEmpty else { return [] }
@@ -28,7 +27,7 @@ final class SpotlightFileSearcher: FileSearching {
                 isFinished = true
                 query.stop()
                 observer.map(NotificationCenter.default.removeObserver)
-                let items = (query.results as? [NSMetadataItem] ?? []).prefix(Self.resultLimit)
+                let items = query.results as? [NSMetadataItem] ?? []
                 let results = items.compactMap { item -> FileResult? in
                     guard let path = item.value(forAttribute: NSMetadataItemPathKey) as? String,
                           !path.hasPrefix(library), !path.contains("/.") else { return nil }

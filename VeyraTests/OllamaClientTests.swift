@@ -124,4 +124,10 @@ struct OllamaClientTests {
         StubURLProtocol.body = Data()
         await #expect(throws: ChatError.badStatus(500)) { try await client.callTool(toolRequest) }
     }
+
+    @Test func nonStringArgumentsAreKeptAsTextOrDropped() async throws {
+        StubURLProtocol.status = 200
+        StubURLProtocol.body = Data(#"{"message":{"role":"assistant","content":"","tool_calls":[{"function":{"name":"open","arguments":{"kind":"file","target":2024,"exact":true,"extra":null,"list":["a"]}}}]},"done":true}"#.utf8)
+        #expect(try await client.callTool(toolRequest) == .call(ToolCall(name: "open", arguments: ["kind": "file", "target": "2024", "exact": "true"])))
+    }
 }

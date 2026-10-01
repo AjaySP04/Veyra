@@ -431,4 +431,21 @@ struct DictationCoordinatorTests {
         #expect(inserter.inserted == ["hello world"])
         #expect(agent.transcripts == ["Open Slack."])
     }
+
+    @Test func fnWorksWhileAnActionResultIsShowing() async {
+        let coordinator = await readyCoordinator()
+        await act("Open Slack.", on: coordinator)
+        #expect(coordinator.state == .acted(message: "Opened Slack"))
+        hotkey.send(.pressed(.dictate))
+        #expect(coordinator.state == .recording(level: 0))
+        #expect(coordinator.gesture == .dictate)
+    }
+
+    @Test func fnWorksWhileAFailureIsShowing() async {
+        agent.outcome = .failed("No app called “Foo”")
+        let coordinator = await readyCoordinator()
+        await act("open foo", on: coordinator)
+        hotkey.send(.pressed(.act))
+        #expect(coordinator.state == .recording(level: 0))
+    }
 }

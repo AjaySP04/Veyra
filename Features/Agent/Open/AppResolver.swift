@@ -50,7 +50,7 @@ enum AppResolver {
 
     private static func isNearMiss(_ query: String, _ name: String) -> Bool {
         let limit = query.count >= 5 ? 2 : query.count == 4 ? 1 : 0
-        return limit > 0 && distance(query, name) <= limit
+        return limit > 0 && query.first == name.first && distance(query, name) <= limit
     }
 
     private static func distance(_ a: String, _ b: String) -> Int {

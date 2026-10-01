@@ -162,10 +162,39 @@ private nonisolated struct ChatReply: Decodable {
         struct Function: Decodable {
             let name: String
             let arguments: [String: String]
+
+            enum CodingKeys: String, CodingKey {
+                case name, arguments
+            }
+
+            init(from decoder: Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                name = try container.decode(String.self, forKey: .name)
+                arguments = try container.decode([String: ArgumentText].self, forKey: .arguments).compactMapValues(\.text)
+            }
         }
 
         let function: Function
     }
 
     let message: Message
+}
+
+private nonisolated struct ArgumentText: Decodable {
+    let text: String?
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let string = try? container.decode(String.self) {
+            text = string
+        } else if let bool = try? container.decode(Bool.self) {
+            text = String(bool)
+        } else if let integer = try? container.decode(Int.self) {
+            text = String(integer)
+        } else if let number = try? container.decode(Double.self) {
+            text = String(number)
+        } else {
+            text = nil
+        }
+    }
 }

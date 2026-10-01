@@ -26,6 +26,15 @@ struct OpenResolverTests {
         #expect(AppResolver.match(query, in: apps) == nil)
     }
 
+    @Test func nearMissMustStartWithTheSameLetter() {
+        #expect(AppResolver.match("Notion", in: ["Motion"]) == nil)
+        #expect(AppResolver.match("Slak", in: ["Slack"]) == "Slack")
+    }
+
+    @Test func installedAppsIncludeFinder() {
+        #expect(InstalledAppDirectory().installedApps().contains { $0.name == "Finder" })
+    }
+
     @Test func tieGoesToShortestName() {
         #expect(AppResolver.match("mail", in: ["Mailspring", "Mail"]) == "Mail")
         #expect(AppResolver.match("code", in: ["Xcode", "Visual Studio Code"]) == "Xcode")
@@ -40,6 +49,7 @@ struct OpenResolverTests {
         (" mail.google.com ", "https://mail.google.com"),
         ("wikipedia", "https://wikipedia.com"),
         ("YouTube", "https://youtube.com"),
+        ("YouTube.", "https://youtube.com"),
     ])
     func websiteURL(target: String, expected: String) {
         #expect(WebsiteResolver.url(for: target)?.absoluteString == expected)

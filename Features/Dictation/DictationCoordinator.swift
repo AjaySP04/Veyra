@@ -77,7 +77,8 @@ final class DictationCoordinator {
 
     func handle(_ event: HotkeyEvent) {
         switch (event, state) {
-        case (.pressed(let gesture), .idle): beginRecording(gesture)
+        case (.pressed(let gesture), .idle), (.pressed(let gesture), .acted), (.pressed(let gesture), .failed):
+            beginRecording(gesture)
         case (.released, .recording): finishRecording()
         case (.cancelled, .recording): cancelRecording()
         case (.userInput, _):

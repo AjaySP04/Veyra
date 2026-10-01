@@ -560,11 +560,11 @@ Cloud-based providers may eventually be supported as explicit user-selected alte
 
 ## Phase 7 — Voice Commands
 
-- [ ] Intent classification
-- [ ] Text editing commands
-- [ ] Formatting commands
-- [ ] Undo/redo
-- [ ] Command routing
+- [x] Intent classification
+- [x] Text editing commands
+- [x] Formatting commands
+- [x] Undo/redo
+- [x] Command routing
 
 ## Phase 8 — Agent System
 

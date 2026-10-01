@@ -5,7 +5,7 @@
 <h1 align="center">Veyra</h1>
 
 <p align="center"><b>Your voice, understood.</b><br>
-Private, unlimited voice dictation for macOS — hold <b>Fn</b>, speak, release, and your words appear wherever your cursor is.</p>
+Private, unlimited voice dictation for macOS — hold <b>Fn</b>, speak, release, and your words appear wherever your cursor is. Say a command instead, and Veyra edits for you.</p>
 
 ---
 
@@ -14,6 +14,7 @@ Private, unlimited voice dictation for macOS — hold <b>Fn</b>, speak, release,
 - **Works in any app** — Notes, Slack, VS Code, browsers, Terminal.
 - **Private by default** — Whisper runs on your Mac. No account, no usage limits, works offline.
 - **Clean text** — with [Ollama](https://ollama.com), filler words are removed, punctuation fixed, and spoken lists turned into bullet points by `gemma4` on your Mac. If you add `gemma4:cloud`, it is used whenever the local model is missing, too slow, or its reply is rejected.
+- **Voice commands** — say "undo that", "scratch that" or "new line" and Veyra presses the keys for you.
 - **Noise-aware** — Apple voice processing plus optional Voice Isolation for busy rooms.
 - **Clipboard-safe** — your previous clipboard is restored after every paste.
 
@@ -109,6 +110,33 @@ Veyra transcribes in English and adapts cleanup to the app you're dictating into
 | Terminal | Terminal, Ghostty, iTerm, Warp | Always one line, so a line break can never run a command |
 | Standard | Everything else | Filler removal, punctuation and bullet lists |
 
+### Voice commands
+
+Hold **Fn** and say one of these phrases on its own. Capitals, punctuation and a "please" are ignored. Anything else you say is typed as usual.
+
+| Say | Does |
+|---|---|
+| "undo" / "undo that" | Undo |
+| "redo" / "redo that" | Redo |
+| "scratch that" | Removes what Veyra just typed, if you haven't typed, clicked or switched apps since |
+| "delete that" | Deletes the selection |
+| "delete last word" | Deletes the word before the cursor |
+| "delete line" | Deletes to the start of the line |
+| "bold that" / "italic that" / "underline that" | Formats the selection |
+| "select all" | Selects everything |
+| "select last word" | Selects the word before the cursor |
+| "go to start of line" / "go to end of line" | Moves the cursor along the line |
+| "go to top" / "go to bottom" | Moves to the start or end of the document |
+| "new line" / "new paragraph" | Adds a line break or a blank line |
+
+Some commands adapt to the app:
+
+- **Chat apps:** line breaks use ⇧↩, so your message is never sent.
+- **Terminals:** nothing presses Return. Word and line deletion and line moves use the shell's ⌃W, ⌃U, ⌃A and ⌃E. Selection, formatting, document moves and line breaks are unavailable.
+- **Code editors:** formatting is unavailable, because ⌘B and ⌘I do other things there. Notes and TextEdit format normally.
+
+When a command can't run, Veyra types nothing and shows why. Because a whole utterance is matched, you can't dictate just the words "undo that" as text.
+
 ## Troubleshooting
 
 | Problem | Fix |
@@ -148,6 +176,7 @@ xcodebuild test -project Veyra.xcodeproj -scheme Veyra -destination 'platform=ma
 
 ```text
 Fn ─► FnKeyMonitor ─► DictationCoordinator ─► AudioRecorder ─► WhisperKitTranscriber ─► OllamaTextProcessor ─► PasteboardTextInserter
+                                                                         └─► Intent ─► VoiceCommand.plan ─► CGEventKeystrokeSender
 ```
 
 Built with Swift, SwiftUI, AVFoundation, [WhisperKit](https://github.com/argmaxinc/argmax-oss-swift) and [Ollama](https://ollama.com). Each service sits behind a protocol, so engines can be swapped and the coordinator is tested with fakes.

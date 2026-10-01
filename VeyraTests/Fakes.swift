@@ -32,12 +32,19 @@ final class FakeKeystrokes: KeystrokeSending {
     private let pasteboard: FakePasteboard
     var sideEffect: () -> Void = {}
     private(set) var pastedTexts: [String?] = []
+    private(set) var sentChords: [[KeyChord]] = []
 
     init(pasteboard: FakePasteboard) {
         self.pasteboard = pasteboard
     }
 
-    func sendPaste() {
+    convenience init() {
+        self.init(pasteboard: FakePasteboard())
+    }
+
+    func send(_ chords: [KeyChord]) {
+        sentChords.append(chords)
+        guard chords == [.paste] else { return }
         pastedTexts.append(pasteboard.string)
         sideEffect()
     }
@@ -92,9 +99,11 @@ struct UppercasingProcessor: TextProcessing {
 @MainActor
 final class FakeInserter: TextInserting {
     private(set) var inserted: [String] = []
+    var onInsert: () -> Void = {}
 
     func insert(_ text: String) async throws {
         inserted.append(text)
+        onInsert()
     }
 }
 
@@ -154,4 +163,15 @@ final class RecordingProcessor: TextProcessing {
         modes.append(mode)
         return text
     }
+}
+
+struct AppendingProcessor: TextProcessing {
+    let suffix: String
+
+    func process(_ text: String, mode: DictationMode) async throws -> String { text + suffix }
+}
+
+@MainActor
+final class FakeSecureInput {
+    var isEnabled = false
 }

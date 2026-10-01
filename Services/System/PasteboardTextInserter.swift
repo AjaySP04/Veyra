@@ -15,7 +15,7 @@ final class PasteboardTextInserter: TextInserting {
         let original = pasteboard.snapshot()
         pasteboard.write(text)
         let ownChange = pasteboard.changeCount
-        keystrokes.sendPaste()
+        keystrokes.send([.paste])
         try await Task.sleep(for: restoreDelay)
         guard pasteboard.changeCount == ownChange else { return }
         pasteboard.restore(original)

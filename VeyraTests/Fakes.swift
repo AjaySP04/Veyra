@@ -261,3 +261,30 @@ final class FakeAgent: AgentRunning {
         return outcome
     }
 }
+
+struct FakeSelectionReader: SelectionReading {
+    var read = SelectionRead.unknown
+    func selectedText() -> SelectionRead { read }
+}
+
+@MainActor
+final class FakeCopier: SelectionCopying {
+    var copied: String?
+    private(set) var copyCount = 0
+
+    func copySelection() async -> String? {
+        copyCount += 1
+        return copied
+    }
+}
+
+@MainActor
+final class FakeRewriter: TextRewriting {
+    var result: Result<String, Error> = .success("Rewritten.")
+    private(set) var calls: [(text: String, instruction: String)] = []
+
+    func rewrite(_ text: String, instruction: String) async throws -> String {
+        calls.append((text, instruction))
+        return try result.get()
+    }
+}

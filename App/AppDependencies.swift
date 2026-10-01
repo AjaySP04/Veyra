@@ -16,16 +16,25 @@ final class AppDependencies {
             workspace: NSWorkspaceOpener(),
             home: FileManager.default.homeDirectoryForCurrentUser
         )
+        let inserter = PasteboardTextInserter(pasteboard: NSPasteboard.general, keystrokes: keystrokes)
+        let rewriteTool = RewriteTool(
+            selection: AXSelectionReader(),
+            copier: ClipboardCopier(pasteboard: NSPasteboard.general, keystrokes: keystrokes),
+            rewriter: OllamaTextRewriter(client: client),
+            inserter: inserter,
+            keystrokes: keystrokes,
+            frontmostApp: { NSWorkspace.shared.frontmostApplication?.bundleIdentifier }
+        )
         let coordinator = DictationCoordinator(
             audio: AudioRecorder(),
             transcriber: WhisperKitTranscriber(),
             processor: OllamaTextProcessor(client: client),
-            inserter: PasteboardTextInserter(pasteboard: NSPasteboard.general, keystrokes: keystrokes),
+            inserter: inserter,
             keystrokes: keystrokes,
             hotkey: FnKeyMonitor(),
             permissions: permissions,
             contextProvider: FrontmostAppContextProvider(),
-            agent: AgentRunner(caller: client, registry: ToolRegistry([openTool]))
+            agent: AgentRunner(caller: client, registry: ToolRegistry([openTool, rewriteTool]))
         )
         self.permissions = permissions
         self.coordinator = coordinator

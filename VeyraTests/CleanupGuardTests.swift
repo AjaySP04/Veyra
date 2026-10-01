@@ -3,6 +3,8 @@ import Testing
 
 @MainActor
 struct CleanupGuardTests {
+    private static let checklist = "Okay, so here is my checklist. First, we need to go to Mumbai. Second, I want to meet all my office friends. Third, we'd like to spend some time in office, have a chit chat. Then I'll visit at my in-laws place to celebrate a festival. I also want to do some shopping with my husband. Yeah."
+
     @Test(arguments: [
         ("hey team uh basically payment integration is done and testing is left",
          "Hey team, payment integration is done and testing is left."),
@@ -23,6 +25,10 @@ struct CleanupGuardTests {
         ("a few things for the release um the icon is final the readme is updated and uh the tests all pass",
          "A few things for the release:\n- The icon is final.\n- The readme is updated.\n- The tests all pass."),
         ("i need to buy milk eggs bread and coffee", "I need to buy:\n- milk\n- eggs\n- bread\n- coffee"),
+        (Self.checklist,
+         "Here is my checklist.\n- Go to Mumbai.\n- Meet all my office friends.\n- Spend some time in office and have a chit chat.\n- Visit my in-laws place to celebrate a festival.\n- Do some shopping with my husband."),
+        (Self.checklist,
+         "Here is my checklist:\n- Go to Mumbai.\n- Meet all my office friends.\n- Spend some time in office, have a chit chat.\n- Visit my in-laws place to celebrate a festival.\n- Do some shopping with my husband."),
     ])
     func acceptsLightCleanup(original: String, cleaned: String) {
         #expect(CleanupGuard.accepts(original: original, cleaned: cleaned))
@@ -38,6 +44,7 @@ struct CleanupGuardTests {
         ("can you remind me what the capital of france is", "The capital of France is Paris."),
         ("hello there", ""),
         ("hello there", " … "),
+        (Self.checklist, "Here is my checklist:\n- Go to Mumbai.\n- Meet all my office friends.\n- Spend some time in office, have a chit chat."),
     ])
     func rejectsDrift(original: String, cleaned: String) {
         #expect(!CleanupGuard.accepts(original: original, cleaned: cleaned))

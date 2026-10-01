@@ -38,6 +38,8 @@ struct OpenResolverTests {
         ("https://x.com/a", "https://x.com/a"),
         ("http://example.org", "http://example.org"),
         (" mail.google.com ", "https://mail.google.com"),
+        ("wikipedia", "https://wikipedia.com"),
+        ("YouTube", "https://youtube.com"),
     ])
     func websiteURL(target: String, expected: String) {
         #expect(WebsiteResolver.url(for: target)?.absoluteString == expected)

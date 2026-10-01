@@ -41,4 +41,15 @@ struct ClipboardCopierTests {
         #expect(KeyChord.copy == KeyChord("c", .maskCommand))
         #expect(KeyChord.selectCharacterBackward == KeyChord(kVK_LeftArrow, .maskShift))
     }
+
+    @Test func lateCopyIsStillRestored() async throws {
+        pasteboard.write("mine")
+        keystrokes.onSend = { [pasteboard] _ in
+            Task { try? await Task.sleep(for: .milliseconds(120)); pasteboard.write("late copy") }
+        }
+        let late = ClipboardCopier(pasteboard: pasteboard, keystrokes: keystrokes, timeout: .milliseconds(40), interval: .milliseconds(10), lateRestoreWindow: .milliseconds(400))
+        #expect(await late.copySelection() == nil)
+        try await Task.sleep(for: .milliseconds(500))
+        #expect(pasteboard.string == "mine")
+    }
 }

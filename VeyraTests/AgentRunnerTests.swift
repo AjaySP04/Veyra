@@ -122,4 +122,9 @@ struct AgentRunnerTests {
         caller.replies[local] = .success(openSlack)
         #expect(await runner.run("Open Slack.") == .failed("Cancelled because the app changed"))
     }
+
+    @Test func newRewriteMessages() {
+        #expect(AgentError.interrupted.message == "Cancelled because you typed")
+        #expect(AgentError.readOnly.message == "That text can't be edited")
+    }
 }

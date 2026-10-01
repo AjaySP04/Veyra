@@ -264,7 +264,15 @@ final class FakeAgent: AgentRunning {
 
 struct FakeSelectionReader: SelectionReading {
     var read = SelectionRead.unknown
+    var editable: Bool? = true
     func selectedText() -> SelectionRead { read }
+    func isFocusedElementEditable() -> Bool? { editable }
+}
+
+@MainActor
+final class SettleRecorder {
+    private(set) var counts: [Int] = []
+    func settle(_ count: Int) async { counts.append(count) }
 }
 
 @MainActor

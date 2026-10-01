@@ -81,6 +81,9 @@ final class DictationCoordinator {
             beginRecording(gesture)
         case (.released, .recording): finishRecording()
         case (.cancelled, .recording): cancelRecording()
+        case (.cancelled, _):
+            userInputCount += 1
+            lastInsertion = nil
         case (.userInput, _):
             userInputCount += 1
             lastInsertion = nil
@@ -161,7 +164,13 @@ final class DictationCoordinator {
             let insertion = isSecureInputEnabled() || lastInsertion?.bundleIdentifier != context.bundleIdentifier ? nil : lastInsertion
             lastInsertion = nil
             let inputCountBeforeAction = userInputCount
-            let toolContext = ToolContext(mode: context.mode, bundleIdentifier: context.bundleIdentifier, lastInsertion: insertion)
+            let toolContext = ToolContext(
+                mode: context.mode, bundleIdentifier: context.bundleIdentifier, lastInsertion: insertion,
+                isUntouched: { [weak self] in
+                    guard let self else { return false }
+                    return userInputCount == inputCountBeforeAction && !isSecureInputEnabled()
+                }
+            )
             switch await agent.run(transcript, in: toolContext) {
             case .done(let message, let newInsertion):
                 lastInsertion = userInputCount == inputCountBeforeAction ? newInsertion : nil

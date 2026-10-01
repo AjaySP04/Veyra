@@ -8,11 +8,12 @@ struct RewriteToolTests {
     private let rewriter = FakeRewriter()
     private let inserter = FakeInserter()
     private let keystrokes = FakeKeystrokes()
+    private let settled = SettleRecorder()
 
-    private func tool(_ read: SelectionRead = .unknown, frontmost: String? = "com.apple.Notes") -> RewriteTool {
+    private func tool(_ read: SelectionRead = .unknown, frontmost: String? = "com.apple.Notes", editable: Bool? = true) -> RewriteTool {
         RewriteTool(
-            selection: FakeSelectionReader(read: read), copier: copier, rewriter: rewriter,
-            inserter: inserter, keystrokes: keystrokes, frontmostApp: { frontmost }
+            selection: FakeSelectionReader(read: read, editable: editable), copier: copier, rewriter: rewriter,
+            inserter: inserter, keystrokes: keystrokes, frontmostApp: { frontmost }, settle: settled.settle
         )
     }
 
@@ -108,7 +109,14 @@ struct RewriteToolTests {
     }
 
     @Test func appChangedBeforeReplacing() async throws {
-        let action = try await tool(.text("selected"), frontmost: "com.tinyspeck.slackmacgap").prepare(["instruction": "formal"], in: context())
+        final class Frontmost { var app: String? = "com.apple.Notes" }
+        let frontmost = Frontmost()
+        let tool = RewriteTool(
+            selection: FakeSelectionReader(read: .text("selected")), copier: copier, rewriter: rewriter,
+            inserter: inserter, keystrokes: keystrokes, frontmostApp: { frontmost.app }, settle: settled.settle
+        )
+        let action = try await tool.prepare(["instruction": "formal"], in: context())
+        frontmost.app = "com.tinyspeck.slackmacgap"
         await #expect(throws: AgentError.appChanged) { try await action.perform() }
         #expect(inserter.inserted.isEmpty)
         #expect(keystrokes.sentChords.isEmpty)
@@ -117,5 +125,55 @@ struct RewriteToolTests {
     @Test func rewriterErrorsPropagate() async {
         rewriter.result = .failure(AgentError.unavailable)
         await #expect(throws: AgentError.unavailable) { try await tool(.text("x")).prepare(["instruction": "formal"], in: context()) }
+    }
+
+    @Test func typingDuringTheRewriteCancelsBeforeAnyKey() async throws {
+        let touched = ToolContext(mode: .editor, bundleIdentifier: notes, lastInsertion: LastInsertion(text: "hello", bundleIdentifier: notes), isUntouched: { false })
+        let action = try await tool().prepare(["instruction": "formal"], in: touched)
+        await #expect(throws: AgentError.interrupted) { try await action.perform() }
+        #expect(keystrokes.sentChords.isEmpty)
+        #expect(inserter.inserted.isEmpty)
+    }
+
+    @Test func switchedAppBeforeReadingReadsNothing() async {
+        await #expect(throws: AgentError.appChanged) {
+            try await tool(.text("other app text"), frontmost: "com.tinyspeck.slackmacgap").prepare(["instruction": "formal"], in: context())
+        }
+        #expect(rewriter.calls.isEmpty)
+        #expect(copier.copyCount == 0)
+    }
+
+    @Test(arguments: [SelectionRead.text("read only"), .unknown])
+    func readOnlyTextIsRefused(read: SelectionRead) async {
+        copier.copied = "read only"
+        await #expect(throws: AgentError.readOnly) { try await tool(read, editable: false).prepare(["instruction": "formal"], in: context()) }
+        #expect(rewriter.calls.isEmpty)
+    }
+
+    @Test func unknownEditabilityIsAllowed() async throws {
+        _ = try await tool(.text("x"), editable: nil).prepare(["instruction": "formal"], in: context())
+        #expect(rewriter.calls.count == 1)
+    }
+
+    @Test func lastInsertionSkipsTheEditabilityCheck() async throws {
+        _ = try await tool(editable: false).prepare(["instruction": "formal"], in: context(last: "hello"))
+        #expect(rewriter.calls.count == 1)
+    }
+
+    @Test func emptyResultFails() async {
+        rewriter.result = .success("  \n ")
+        let ghostty = "com.mitchellh.ghostty"
+        await #expect(throws: AgentError.rewriteFailed) {
+            try await tool(frontmost: ghostty).prepare(["instruction": "x"], in: context(.terminal, last: "abc", app: ghostty))
+        }
+    }
+
+    @Test func waitsForSelectionKeysBeforePasting() async throws {
+        let action = try await tool().prepare(["instruction": "formal"], in: context(last: "hello world"))
+        try await action.perform()
+        #expect(settled.counts == [11])
+        let selection = try await tool(.text("x")).prepare(["instruction": "formal"], in: context())
+        try await selection.perform()
+        #expect(settled.counts == [11])
     }
 }

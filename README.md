@@ -153,7 +153,7 @@ Hold **Control**, then hold **Fn** while you speak, and Veyra does what you ask 
 | "open my resume", "open the Veyra project folder" | Opens the best-matching file or folder in your home folder, most recently used first |
 | "make this more formal", "translate this to Hindi", "make it shorter", "fix the grammar" | Rewrites the selected text in place — or what you just dictated, if you haven't typed, clicked or switched apps since |
 
-Rewrites replace the text straight away; ⌘Z or "undo that" brings the original back, and your clipboard is left as it was. In VS Code, asking with nothing selected rewrites the current line, because that is what VS Code copies.
+Rewrites replace the text straight away; ⌘Z or "undo that" brings the original back, and your clipboard is left as it was. If you type or click while a rewrite is in progress, it is cancelled. Text you can't edit, such as a web page, is left alone. In VS Code, JetBrains IDEs, Sublime Text and Cursor, asking with nothing selected copies the current line, so its rewrite is inserted at the cursor — ⌘Z removes it.
 
 When several files match, Veyra opens the best one and tells you how many others matched. Actions need [Ollama](#6-transcript-cleanup-optional) with `gemma4`. The first file search may ask for access to your Documents, Desktop or Downloads folder.
 

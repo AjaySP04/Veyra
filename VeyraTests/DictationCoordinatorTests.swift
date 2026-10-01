@@ -492,4 +492,28 @@ struct DictationCoordinatorTests {
         await say("scratch that", to: coordinator)
         #expect(keystrokes.sentChords.isEmpty)
     }
+
+    @Test func actionContextReportsTypingDuringTheAction() async {
+        agent.onRun = { [hotkey] in hotkey.send(.userInput) }
+        let coordinator = await readyCoordinator(failureDisplayDuration: .zero)
+        await act("make that shorter", on: coordinator)
+        #expect(agent.contexts.map { $0.isUntouched() } == [false])
+    }
+
+    @Test func untouchedActionContextStaysValid() async {
+        let coordinator = await readyCoordinator(failureDisplayDuration: .zero)
+        await act("make that shorter", on: coordinator)
+        #expect(agent.contexts.map { $0.isUntouched() } == [true])
+    }
+
+    @Test func fnKeyDuringAnActionCountsAsInput() async {
+        agent.outcome = .done("Rewrote your last dictation", insertion: LastInsertion(text: "Hi.", bundleIdentifier: nil))
+        agent.onRun = { [hotkey] in hotkey.send(.cancelled) }
+        let coordinator = await readyCoordinator(failureDisplayDuration: .zero)
+        await act("make that shorter", on: coordinator)
+        #expect(agent.contexts.map { $0.isUntouched() } == [false])
+        await coordinator.recovery?.value
+        await say("scratch that", to: coordinator)
+        #expect(keystrokes.sentChords.isEmpty)
+    }
 }

@@ -117,4 +117,13 @@ The text is the current selection. If Veyra's last dictation is still the last t
 
 ## Known Limitation
 
-In VS Code, with *no* selection after a click, ⌘C copies the current line, so that line is rewritten. ⌘Z undoes it, and the README documents it.
+In VS Code, JetBrains IDEs, Sublime Text and Cursor, with *no* selection after a click, ⌘C copies the current line. Its rewrite is inserted at the cursor, because a copied source is pasted rather than selected. ⌘Z undoes it, and the README documents it.
+
+## Review Amendments
+
+- A rewrite is cancelled with "Cancelled because you typed" if the user types, clicks, presses Fn + a key, or turns on secure input before it lands (`ToolContext.isUntouched`).
+- The frontmost app is checked before any selection is read, as well as before replacing.
+- A selection in an element Accessibility reports as not editable is refused with "That text can't be edited".
+- If an app answers ⌘C after the 300 ms probe, the clipboard is still restored, for up to 1.5 s.
+- After the ⇧← or ⌫ keys, Veyra waits 2 ms per key (at most 2 s) before pasting, so slow apps finish selecting first.
+- A rewrite that is empty after `finalize` fails with "Couldn't rewrite that".

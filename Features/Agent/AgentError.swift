@@ -9,6 +9,8 @@ enum AgentError: Error, Equatable {
     case tooLong
     case rewriteFailed
     case appChanged
+    case interrupted
+    case readOnly
 
     var message: String {
         switch self {
@@ -22,6 +24,8 @@ enum AgentError: Error, Equatable {
         case .tooLong: "That's too much text to rewrite"
         case .rewriteFailed: "Couldn't rewrite that"
         case .appChanged: "Cancelled because the app changed"
+        case .interrupted: "Cancelled because you typed"
+        case .readOnly: "That text can't be edited"
         }
     }
 }

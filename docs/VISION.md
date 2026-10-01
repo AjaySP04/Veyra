@@ -568,13 +568,15 @@ Cloud-based providers may eventually be supported as explicit user-selected alte
 
 ## Phase 8 — Agent System
 
-- [ ] Tool abstraction
-- [ ] Tool calling
+- [x] Tool abstraction
+- [x] Tool calling
 - [ ] Agent state
 - [ ] Planning
 - [ ] Execution
-- [ ] Safety boundaries
+- [x] Safety boundaries
 - [ ] Agent evaluation
+
+Sub-projects: 8.1 open apps, websites, folders and files (done) · 8.2 rewrite selected text · 8.3 shell commands · 8.4 send and multi-step plans · 8.5 evaluation (started).
 
 ## Phase 9 — Production
 

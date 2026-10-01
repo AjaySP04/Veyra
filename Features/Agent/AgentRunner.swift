@@ -2,12 +2,12 @@ import Foundation
 import os
 
 enum AgentOutcome: Equatable {
-    case done(String)
+    case done(String, insertion: LastInsertion? = nil)
     case failed(String)
 }
 
 protocol AgentRunning {
-    func run(_ transcript: String) async -> AgentOutcome
+    func run(_ transcript: String, in context: ToolContext) async -> AgentOutcome
 }
 
 struct AgentRunner: AgentRunning {
@@ -27,7 +27,7 @@ struct AgentRunner: AgentRunning {
         self.models = models
     }
 
-    func run(_ transcript: String) async -> AgentOutcome {
+    func run(_ transcript: String, in context: ToolContext = .none) async -> AgentOutcome {
         var unresolved = AgentError.unavailable
         for model in models {
             let start = ContinuousClock.now
@@ -49,7 +49,7 @@ struct AgentRunner: AgentRunning {
             }
             let action: PreparedAction
             do {
-                action = try await tool.prepare(call.arguments)
+                action = try await tool.prepare(call.arguments, in: context)
             } catch AgentError.invalidArguments {
                 log(call.name, call, "invalid", model, start)
                 unresolved = .invalidArguments
@@ -64,11 +64,11 @@ struct AgentRunner: AgentRunning {
             }
             do {
                 try await action.perform()
-                log(call.name, call, "opened", model, start)
-                return .done(action.done)
+                log(call.name, call, "done", model, start)
+                return .done(action.done, insertion: action.insertion)
             } catch {
                 log(call.name, call, "failed", model, start)
-                return .failed(action.failure)
+                return .failed((error as? AgentError)?.message ?? action.failure)
             }
         }
         return .failed(unresolved.message)

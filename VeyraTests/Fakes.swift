@@ -194,13 +194,16 @@ final class FakeTool: Tool {
     let risk = ToolRisk.immediate
     var prepareError: Error?
     var performError: Error?
+    var insertion: LastInsertion?
     private(set) var preparedArguments: [[String: String]] = []
+    private(set) var contexts: [ToolContext] = []
     private(set) var performCount = 0
 
-    func prepare(_ arguments: [String: String]) async throws -> PreparedAction {
+    func prepare(_ arguments: [String: String], in context: ToolContext) async throws -> PreparedAction {
         preparedArguments.append(arguments)
+        contexts.append(context)
         if let prepareError { throw prepareError }
-        return PreparedAction(done: "Opened Slack", failure: "Couldn't open Slack") { [self] in
+        return PreparedAction(done: "Opened Slack", failure: "Couldn't open Slack", insertion: insertion) { [self] in
             performCount += 1
             if let performError { throw performError }
         }
@@ -243,10 +246,14 @@ final class FakeWorkspace: WorkspaceOpening {
 @MainActor
 final class FakeAgent: AgentRunning {
     var outcome = AgentOutcome.done("Opened Slack")
+    var onRun: () -> Void = {}
     private(set) var transcripts: [String] = []
+    private(set) var contexts: [ToolContext] = []
 
-    func run(_ transcript: String) async -> AgentOutcome {
+    func run(_ transcript: String, in context: ToolContext) async -> AgentOutcome {
         transcripts.append(transcript)
+        contexts.append(context)
+        onRun()
         return outcome
     }
 }

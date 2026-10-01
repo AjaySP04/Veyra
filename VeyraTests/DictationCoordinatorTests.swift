@@ -448,4 +448,48 @@ struct DictationCoordinatorTests {
         hotkey.send(.pressed(.act))
         #expect(coordinator.state == .recording(level: 0))
     }
+
+    @Test func actionReceivesTheValidLastInsertion() async {
+        context.context = AppContext(bundleIdentifier: "com.apple.Notes", windowTitle: nil)
+        let coordinator = await readyCoordinator(failureDisplayDuration: .zero)
+        await dictate(coordinator)
+        await act("make that shorter", on: coordinator)
+        #expect(agent.contexts.map(\.lastInsertion) == [LastInsertion(text: "hello world", bundleIdentifier: "com.apple.Notes")])
+        #expect(agent.contexts.map(\.mode) == [.editor])
+    }
+
+    @Test func actionDoesNotReceiveAnInsertionAfterTyping() async {
+        let coordinator = await readyCoordinator(failureDisplayDuration: .zero)
+        await dictate(coordinator)
+        hotkey.send(.userInput)
+        await act("make that shorter", on: coordinator)
+        #expect(agent.contexts.map(\.lastInsertion) == [nil])
+    }
+
+    @Test func actionDoesNotReceiveAnInsertionUnderSecureInput() async {
+        let coordinator = await readyCoordinator(failureDisplayDuration: .zero)
+        await dictate(coordinator)
+        secureInput.isEnabled = true
+        await act("make that shorter", on: coordinator)
+        #expect(agent.contexts.map(\.lastInsertion) == [nil])
+    }
+
+    @Test func actionInsertionCanBeScratched() async {
+        agent.outcome = .done("Rewrote your last dictation", insertion: LastInsertion(text: "Hi.", bundleIdentifier: nil))
+        let coordinator = await readyCoordinator(failureDisplayDuration: .zero)
+        await act("make that shorter", on: coordinator)
+        await coordinator.recovery?.value
+        await say("scratch that", to: coordinator)
+        #expect(keystrokes.sentChords == [Array(repeating: .deleteBackward, count: 3)])
+    }
+
+    @Test func typingDuringAnActionDropsItsInsertion() async {
+        agent.outcome = .done("Rewrote your last dictation", insertion: LastInsertion(text: "Hi.", bundleIdentifier: nil))
+        agent.onRun = { [hotkey] in hotkey.send(.userInput) }
+        let coordinator = await readyCoordinator(failureDisplayDuration: .zero)
+        await act("make that shorter", on: coordinator)
+        await coordinator.recovery?.value
+        await say("scratch that", to: coordinator)
+        #expect(keystrokes.sentChords.isEmpty)
+    }
 }

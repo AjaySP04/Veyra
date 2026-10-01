@@ -35,7 +35,7 @@ struct OpenTool: Tool {
         self.home = home
     }
 
-    func prepare(_ arguments: [String: String]) async throws -> PreparedAction {
+    func prepare(_ arguments: [String: String], in context: ToolContext = .none) async throws -> PreparedAction {
         guard let kind = arguments["kind"].flatMap(Kind.init(rawValue:)),
               let target = arguments["target"]?.trimmingCharacters(in: .whitespacesAndNewlines), !target.isEmpty else {
             throw AgentError.invalidArguments

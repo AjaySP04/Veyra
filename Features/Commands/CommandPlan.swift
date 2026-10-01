@@ -13,8 +13,10 @@ struct CommandContext: Equatable {
 }
 
 struct LastInsertion: Equatable {
-    let characterCount: Int
+    let text: String
     let bundleIdentifier: String?
+
+    var characterCount: Int { text.count }
 }
 
 enum CommandPlan: Equatable {

@@ -115,7 +115,7 @@ final class DictationCoordinator {
         transcription = Task { [context = self.context, gesture = self.gesture] in
             switch gesture {
             case .dictate: await transcribeAndRoute(samples, in: context)
-            case .act: await transcribeAndAct(samples)
+            case .act: await transcribeAndAct(samples, in: context)
             }
         }
     }
@@ -139,7 +139,7 @@ final class DictationCoordinator {
                 try await inserter.insert(processed)
                 let isUntouched = userInputCount == inputCountBeforeInsert && !isSecureInputEnabled()
                 lastInsertion = isUntouched
-                    ? LastInsertion(characterCount: processed.count, bundleIdentifier: context.bundleIdentifier)
+                    ? LastInsertion(text: processed, bundleIdentifier: context.bundleIdentifier)
                     : nil
             case .dictate:
                 break
@@ -150,8 +150,7 @@ final class DictationCoordinator {
         }
     }
 
-    private func transcribeAndAct(_ samples: [Float]) async {
-        lastInsertion = nil
+    private func transcribeAndAct(_ samples: [Float], in context: CommandContext) async {
         do {
             let transcript = try await transcriber.transcribe(samples)
             guard !transcript.isEmpty else {
@@ -159,11 +158,19 @@ final class DictationCoordinator {
                 return
             }
             state = .acting
-            switch await agent.run(transcript) {
-            case .done(let message): showBriefly(.acted(message: message))
-            case .failed(let message): showBriefly(.failed(message: message))
+            let insertion = isSecureInputEnabled() || lastInsertion?.bundleIdentifier != context.bundleIdentifier ? nil : lastInsertion
+            lastInsertion = nil
+            let inputCountBeforeAction = userInputCount
+            let toolContext = ToolContext(mode: context.mode, bundleIdentifier: context.bundleIdentifier, lastInsertion: insertion)
+            switch await agent.run(transcript, in: toolContext) {
+            case .done(let message, let newInsertion):
+                lastInsertion = userInputCount == inputCountBeforeAction ? newInsertion : nil
+                showBriefly(.acted(message: message))
+            case .failed(let message):
+                showBriefly(.failed(message: message))
             }
         } catch {
+            lastInsertion = nil
             fail(error.localizedDescription)
         }
     }

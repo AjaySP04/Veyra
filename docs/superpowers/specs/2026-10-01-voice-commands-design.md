@@ -68,8 +68,8 @@ A command is recognized when the whole utterance is one of a fixed set of phrase
 | `lineEnd` | "go to end of line" | ⌘→ | ⌘→ | ⌃E |
 | `documentStart` | "go to top" | ⌘↑ | ⌘↑ | blocked |
 | `documentEnd` | "go to bottom" | ⌘↓ | ⌘↓ | blocked |
-| `newLine` | "new line" | ↩ | ⇧↩ | blocked |
-| `newParagraph` | "new paragraph" | ↩ ↩ | ⇧↩ ⇧↩ | blocked |
+| `newLine` | "new line" | ⇧↩ | ⇧↩ | blocked |
+| `newParagraph` | "new paragraph" | ⇧↩ ⇧↩ | ⇧↩ ⇧↩ | blocked |
 
 **Formatting in Editor mode.** `bold`, `italic` and `underline` are allowed only in the rich-text editors `com.apple.TextEdit` and `com.apple.Notes`. In every other Editor-mode app (VS Code, Xcode, Cursor, Zed, Sublime Text, JetBrains IDEs) they are blocked, because ⌘B and ⌘I are bound to other actions there.
 
@@ -80,6 +80,16 @@ A command is recognized when the whole utterance is one of a fixed set of phrase
 | Blocked in Terminal mode | "<Name> isn't available in Terminal" (for example "New line isn't available in Terminal") |
 | Formatting in a code editor | "Formatting isn't available in this app" |
 | "Scratch that" with nothing to remove | "Nothing to scratch" |
+
+## Review Amendments
+
+Added after the whole-branch review, with the owner's approval for the line-break and terminal changes:
+
+- **Line breaks** use ⇧↩ in every mode except Terminal. Plain ↩ would send messages in chat apps Veyra doesn't detect.
+- **More terminals** use Terminal mode: kitty, Alacritty, WezTerm, Hyper and Rio.
+- **Keyboard layouts:** letter chords are resolved through the current ASCII-capable layout (`KeyLayout`), so ⌘Z doesn't become ⌘W on AZERTY.
+- **Switching apps:** a command is cancelled with "Command cancelled because the app changed" if the frontmost app at send time differs from the one at the Fn press.
+- **"Scratch that"** is refused while Secure Event Input is on, and an insertion isn't stored if the user typed while the paste landed. Middle clicks also count as user input.
 
 ## Architecture
 

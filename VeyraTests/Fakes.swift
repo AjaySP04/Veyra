@@ -99,9 +99,11 @@ struct UppercasingProcessor: TextProcessing {
 @MainActor
 final class FakeInserter: TextInserting {
     private(set) var inserted: [String] = []
+    var onInsert: () -> Void = {}
 
     func insert(_ text: String) async throws {
         inserted.append(text)
+        onInsert()
     }
 }
 
@@ -167,4 +169,9 @@ struct AppendingProcessor: TextProcessing {
     let suffix: String
 
     func process(_ text: String, mode: DictationMode) async throws -> String { text + suffix }
+}
+
+@MainActor
+final class FakeSecureInput {
+    var isEnabled = false
 }

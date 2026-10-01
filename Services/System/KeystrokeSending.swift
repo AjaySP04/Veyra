@@ -9,9 +9,11 @@ struct CGEventKeystrokeSender: KeystrokeSending {
 
     func send(_ chords: [KeyChord]) {
         let source = CGEventSource(stateID: .combinedSessionState)
+        let layout = KeyLayout.current()
         for chord in chords {
+            let code = layout.keyCode(for: chord.key)
             for isKeyDown in [true, false] {
-                let event = CGEvent(keyboardEventSource: source, virtualKey: chord.key, keyDown: isKeyDown)
+                let event = CGEvent(keyboardEventSource: source, virtualKey: code, keyDown: isKeyDown)
                 event?.flags = chord.flags
                 event?.setIntegerValueField(.eventSourceUserData, value: Self.eventMarker)
                 event?.post(tap: .cghidEventTap)

@@ -1,3 +1,4 @@
+import Carbon.HIToolbox
 import Foundation
 import Observation
 import os
@@ -12,6 +13,7 @@ final class DictationCoordinator {
     @ObservationIgnored private(set) var recovery: Task<Void, Never>?
     @ObservationIgnored private var context = CommandContext(mode: .standard, bundleIdentifier: nil)
     @ObservationIgnored private var lastInsertion: LastInsertion?
+    @ObservationIgnored private var userInputCount = 0
 
     private let audio: AudioCapturing
     private let transcriber: Transcribing
@@ -21,6 +23,7 @@ final class DictationCoordinator {
     private let hotkey: HotkeyMonitoring
     private let permissions: PermissionChecking
     private let contextProvider: AppContextProviding
+    private let isSecureInputEnabled: () -> Bool
     private let failureDisplayDuration: Duration
 
     init(
@@ -32,6 +35,7 @@ final class DictationCoordinator {
         hotkey: HotkeyMonitoring,
         permissions: PermissionChecking,
         contextProvider: AppContextProviding,
+        isSecureInputEnabled: @escaping () -> Bool = { IsSecureEventInputEnabled() },
         failureDisplayDuration: Duration = .seconds(2)
     ) {
         self.audio = audio
@@ -42,6 +46,7 @@ final class DictationCoordinator {
         self.hotkey = hotkey
         self.permissions = permissions
         self.contextProvider = contextProvider
+        self.isSecureInputEnabled = isSecureInputEnabled
         self.failureDisplayDuration = failureDisplayDuration
     }
 
@@ -71,7 +76,9 @@ final class DictationCoordinator {
         case (.pressed, .idle): beginRecording()
         case (.released, .recording): finishRecording()
         case (.cancelled, .recording): cancelRecording()
-        case (.userInput, _): lastInsertion = nil
+        case (.userInput, _):
+            userInputCount += 1
+            lastInsertion = nil
         default: break
         }
     }
@@ -117,8 +124,12 @@ final class DictationCoordinator {
                 return run(command, in: context)
             case .dictate(let text) where !text.isEmpty:
                 let processed = try await processor.process(text, mode: context.mode)
+                let inputCountBeforeInsert = userInputCount
                 try await inserter.insert(processed)
-                lastInsertion = LastInsertion(characterCount: processed.count, bundleIdentifier: context.bundleIdentifier)
+                let isUntouched = userInputCount == inputCountBeforeInsert && !isSecureInputEnabled()
+                lastInsertion = isUntouched
+                    ? LastInsertion(characterCount: processed.count, bundleIdentifier: context.bundleIdentifier)
+                    : nil
             case .dictate:
                 break
             }
@@ -130,8 +141,12 @@ final class DictationCoordinator {
 
     private func run(_ command: VoiceCommand, in context: CommandContext) {
         Logger.dictation.info("Command \(command.rawValue, privacy: .public)")
-        let plan = command.plan(in: context, after: lastInsertion)
+        let insertion = isSecureInputEnabled() ? nil : lastInsertion
         lastInsertion = nil
+        guard contextProvider.current().bundleIdentifier == context.bundleIdentifier else {
+            return fail("Command cancelled because the app changed")
+        }
+        let plan = command.plan(in: context, after: insertion)
         switch plan {
         case .keys(let chords):
             keystrokes.send(chords)

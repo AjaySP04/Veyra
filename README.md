@@ -107,7 +107,7 @@ Veyra transcribes in English and adapts cleanup to the app you're dictating into
 | Email | Mail, Outlook, Spark, Gmail and Outlook in a browser | Greeting line, paragraphs and sign-off — only when you say them |
 | Chat | Slack, Teams, WhatsApp, Messages, Discord, Telegram, Google Chat and Slack in a browser | Short and casual; bullets only for an announced list |
 | Editor | VS Code, Xcode, Cursor, Zed, Sublime Text, JetBrains IDEs, TextEdit, Notes | Technical terms kept exactly |
-| Terminal | Terminal, Ghostty, iTerm, Warp | Always one line, so a line break can never run a command |
+| Terminal | Terminal, Ghostty, iTerm, Warp, kitty, Alacritty, WezTerm, Hyper, Rio | Always one line, so a line break can never run a command |
 | Standard | Everything else | Filler removal, punctuation and bullet lists |
 
 ### Voice commands
@@ -131,9 +131,11 @@ Hold **Fn** and say one of these phrases on its own. Capitals, punctuation and a
 
 Some commands adapt to the app:
 
-- **Chat apps:** line breaks use ⇧↩, so your message is never sent.
+- **Line breaks** use ⇧↩, so a chat message is never sent by accident.
 - **Terminals:** nothing presses Return. Word and line deletion and line moves use the shell's ⌃W, ⌃U, ⌃A and ⌃E. Selection, formatting, document moves and line breaks are unavailable.
 - **Code editors:** formatting is unavailable, because ⌘B and ⌘I do other things there. Notes and TextEdit format normally.
+
+Letters are matched to your keyboard layout, so commands work on AZERTY, QWERTZ and Dvorak too. A command is cancelled if you switch apps before it runs, and "scratch that" does nothing while Secure Keyboard Entry is on.
 
 When a command can't run, Veyra types nothing and shows why. Because a whole utterance is matched, you can't dictate just the words "undo that" as text.
 

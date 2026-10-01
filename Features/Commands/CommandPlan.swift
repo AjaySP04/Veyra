@@ -39,7 +39,6 @@ extension VoiceCommand {
            !Self.richTextEditors.contains(context.bundleIdentifier ?? "") {
             return .unavailable("Formatting isn't available in this app")
         }
-        let lineBreak: KeyChord = context.mode == .chat ? .softReturn : .returnKey
         switch self {
         case .undo: return .keys([.undo])
         case .redo: return .keys([.redo])
@@ -60,8 +59,8 @@ extension VoiceCommand {
         case .lineEnd: return .keys([isTerminal ? .shellLineEnd : .lineEnd])
         case .documentStart: return .keys([.documentStart])
         case .documentEnd: return .keys([.documentEnd])
-        case .newLine: return .keys([lineBreak])
-        case .newParagraph: return .keys([lineBreak, lineBreak])
+        case .newLine: return .keys([.softReturn])
+        case .newParagraph: return .keys([.softReturn, .softReturn])
         }
     }
 }

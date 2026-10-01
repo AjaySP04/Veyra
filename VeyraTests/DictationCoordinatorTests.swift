@@ -10,6 +10,7 @@ struct DictationCoordinatorTests {
     private let hotkey = FakeHotkey()
     private let permissions = FakePermissions()
     private let context = FakeAppContextProvider()
+    private let secureInput = FakeSecureInput()
 
     private func readyCoordinator(
         processor: TextProcessing = PassthroughTextProcessor(),
@@ -24,6 +25,7 @@ struct DictationCoordinatorTests {
             hotkey: hotkey,
             permissions: permissions,
             contextProvider: context,
+            isSecureInputEnabled: { [secureInput] in secureInput.isEnabled },
             failureDisplayDuration: failureDisplayDuration
         )
         await coordinator.start()
@@ -315,5 +317,43 @@ struct DictationCoordinatorTests {
         hotkey.send(.pressed, .cancelled)
         await say("scratch that", to: coordinator)
         #expect(keystrokes.sentChords.isEmpty)
+    }
+
+    @Test func typingWhileTheInsertionLandsPreventsScratch() async {
+        let coordinator = await readyCoordinator()
+        inserter.onInsert = { [hotkey] in hotkey.send(.userInput) }
+        await dictate(coordinator)
+        await say("scratch that", to: coordinator)
+        #expect(keystrokes.sentChords.isEmpty)
+        #expect(coordinator.state == .failed(message: "Nothing to scratch"))
+    }
+
+    @Test func secureInputAtScratchPreventsIt() async {
+        let coordinator = await readyCoordinator()
+        await dictate(coordinator)
+        secureInput.isEnabled = true
+        await say("scratch that", to: coordinator)
+        #expect(keystrokes.sentChords.isEmpty)
+        #expect(coordinator.state == .failed(message: "Nothing to scratch"))
+    }
+
+    @Test func secureInputAtInsertionPreventsScratch() async {
+        secureInput.isEnabled = true
+        let coordinator = await readyCoordinator()
+        await dictate(coordinator)
+        secureInput.isEnabled = false
+        await say("scratch that", to: coordinator)
+        #expect(keystrokes.sentChords.isEmpty)
+    }
+
+    @Test func appSwitchBeforeCommandRunsCancelsIt() async {
+        context.context = AppContext(bundleIdentifier: "com.apple.Notes", windowTitle: nil)
+        let coordinator = await readyCoordinator()
+        transcriber.transcript = "new line"
+        hotkey.send(.pressed, .released)
+        context.context = AppContext(bundleIdentifier: "com.mitchellh.ghostty", windowTitle: nil)
+        await coordinator.transcription?.value
+        #expect(keystrokes.sentChords.isEmpty)
+        #expect(coordinator.state == .failed(message: "Command cancelled because the app changed"))
     }
 }

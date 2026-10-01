@@ -26,15 +26,20 @@ struct CommandPlanTests {
         (.lineEnd, .lineEnd),
         (.documentStart, .documentStart),
         (.documentEnd, .documentEnd),
-        (.newLine, .returnKey),
+        (.newLine, .softReturn),
     ])
     func standardModeKeys(command: VoiceCommand, chord: KeyChord) {
         #expect(plan(command, .standard) == .keys([chord]))
         #expect(plan(command, .email) == .keys([chord]))
     }
 
-    @Test func newParagraphPressesReturnTwice() {
-        #expect(plan(.newParagraph, .standard) == .keys([.returnKey, .returnKey]))
+    @Test func newParagraphPressesShiftReturnTwice() {
+        #expect(plan(.newParagraph, .standard) == .keys([.softReturn, .softReturn]))
+    }
+
+    @Test(arguments: [DictationMode.standard, .email, .chat, .editor])
+    func lineBreaksNeverPressPlainReturn(mode: DictationMode) {
+        #expect(plan(.newLine, mode, app: notes) == .keys([.softReturn]))
     }
 
     @Test func chatLineBreaksDoNotSend() {

@@ -27,6 +27,11 @@ struct DictationModeTests {
         ("com.mitchellh.ghostty", .terminal),
         ("com.googlecode.iterm2", .terminal),
         ("dev.warp.Warp-Stable", .terminal),
+        ("net.kovidgoyal.kitty", .terminal),
+        ("org.alacritty", .terminal),
+        ("com.github.wez.wezterm", .terminal),
+        ("co.zeit.hyper", .terminal),
+        ("com.raphaelamorim.rio", .terminal),
         ("com.example.App", .standard),
     ])
     func resolvesApp(bundleIdentifier: String, expected: DictationMode) {

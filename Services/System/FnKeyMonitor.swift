@@ -8,7 +8,7 @@ final class FnKeyMonitor: HotkeyMonitoring {
 
     func start() {
         stop()
-        let events: NSEvent.EventTypeMask = [.flagsChanged, .keyDown, .leftMouseDown, .rightMouseDown]
+        let events: NSEvent.EventTypeMask = [.flagsChanged, .keyDown, .leftMouseDown, .rightMouseDown, .otherMouseDown]
         let global = NSEvent.addGlobalMonitorForEvents(matching: events) { [weak self] event in
             self?.process(event)
         }
@@ -39,7 +39,7 @@ private extension KeyInput {
         switch event.type {
         case .keyDown:
             self = .keyDown
-        case .leftMouseDown, .rightMouseDown:
+        case .leftMouseDown, .rightMouseDown, .otherMouseDown:
             self = .mouseDown
         case .flagsChanged:
             let flags = event.modifierFlags

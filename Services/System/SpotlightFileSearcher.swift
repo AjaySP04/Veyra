@@ -7,15 +7,19 @@ protocol FileSearching {
 final class SpotlightFileSearcher: FileSearching {
     private static let timeout: Duration = .seconds(2)
 
+    /// NSMetadataQuery throws if an AND or OR group holds a single condition, so one condition stays bare.
+    static func predicate(for words: [String], foldersOnly: Bool) -> NSPredicate {
+        let names = words.map { NSPredicate(format: "%K CONTAINS[cd] %@", NSMetadataItemFSNameKey, $0) }
+        let name = names.count == 1 ? names[0] : NSCompoundPredicate(orPredicateWithSubpredicates: names)
+        guard foldersOnly else { return name }
+        let folder = NSPredicate(format: "%K == %@", NSMetadataItemContentTypeKey, "public.folder")
+        return NSCompoundPredicate(andPredicateWithSubpredicates: [name, folder])
+    }
+
     func search(_ words: [String], foldersOnly: Bool) async -> [FileResult] {
         guard !words.isEmpty else { return [] }
         let query = NSMetadataQuery()
-        let names = words.map { NSPredicate(format: "%K CONTAINS[cd] %@", NSMetadataItemFSNameKey, $0) }
-        var predicates: [NSPredicate] = [NSCompoundPredicate(orPredicateWithSubpredicates: names)]
-        if foldersOnly {
-            predicates.append(NSPredicate(format: "%K == %@", NSMetadataItemContentTypeKey, "public.folder"))
-        }
-        query.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
+        query.predicate = Self.predicate(for: words, foldersOnly: foldersOnly)
         query.searchScopes = [NSMetadataQueryUserHomeScope]
         let library = FileManager.default.homeDirectoryForCurrentUser.appending(path: "Library", directoryHint: .isDirectory).path()
 

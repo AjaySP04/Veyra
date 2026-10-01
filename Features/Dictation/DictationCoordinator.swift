@@ -97,7 +97,7 @@ final class DictationCoordinator {
             state = .recording(level: 0)
             self.gesture = gesture
             context = CommandContext(contextProvider.current())
-            Logger.dictation.info("Mode \(self.context.mode.rawValue, privacy: .public)")
+            Logger.dictation.info("Mode \(self.context.mode.rawValue, privacy: .public), gesture \(gesture == .act ? "act" : "dictate", privacy: .public)")
         } catch {
             fail(error.localizedDescription)
         }

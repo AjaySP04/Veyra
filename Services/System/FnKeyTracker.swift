@@ -1,6 +1,7 @@
 enum KeyInput: Equatable {
     case flagsChanged(fn: Bool, otherModifiers: Bool)
     case keyDown
+    case mouseDown
 }
 
 struct FnKeyTracker {
@@ -18,6 +19,8 @@ struct FnKeyTracker {
             return isCancelled ? nil : .released
         case .flagsChanged(fn: true, otherModifiers: true) where isHeld, .keyDown where isHeld:
             return cancel()
+        case .keyDown where !isHeld, .mouseDown where !isHeld:
+            return .userInput
         default:
             return nil
         }

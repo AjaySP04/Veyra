@@ -175,3 +175,34 @@ struct AppendingProcessor: TextProcessing {
 final class FakeSecureInput {
     var isEnabled = false
 }
+
+@MainActor
+final class FakeToolCaller: ToolCalling {
+    var replies: [String: Result<ToolReply, Error>] = [:]
+    private(set) var requests: [ToolRequest] = []
+
+    func callTool(_ request: ToolRequest) async throws -> ToolReply {
+        requests.append(request)
+        guard let reply = replies[request.model] else { throw TestError() }
+        return try reply.get()
+    }
+}
+
+@MainActor
+final class FakeTool: Tool {
+    let definition = ToolDefinition(name: "open", description: "Open", parameters: [])
+    let risk = ToolRisk.immediate
+    var prepareError: Error?
+    var performError: Error?
+    private(set) var preparedArguments: [[String: String]] = []
+    private(set) var performCount = 0
+
+    func prepare(_ arguments: [String: String]) async throws -> PreparedAction {
+        preparedArguments.append(arguments)
+        if let prepareError { throw prepareError }
+        return PreparedAction(done: "Opened Slack", failure: "Couldn't open Slack") { [self] in
+            performCount += 1
+            if let performError { throw performError }
+        }
+    }
+}

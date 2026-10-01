@@ -162,3 +162,9 @@ final class RecordingProcessor: TextProcessing {
         return text
     }
 }
+
+struct AppendingProcessor: TextProcessing {
+    let suffix: String
+
+    func process(_ text: String, mode: DictationMode) async throws -> String { text + suffix }
+}

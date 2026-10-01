@@ -8,11 +8,13 @@ final class AppDependencies {
 
     init() {
         let permissions = PermissionService()
+        let keystrokes = CGEventKeystrokeSender()
         let coordinator = DictationCoordinator(
             audio: AudioRecorder(),
             transcriber: WhisperKitTranscriber(),
             processor: OllamaTextProcessor(client: OllamaClient()),
-            inserter: PasteboardTextInserter(pasteboard: NSPasteboard.general, keystrokes: CGEventKeystrokeSender()),
+            inserter: PasteboardTextInserter(pasteboard: NSPasteboard.general, keystrokes: keystrokes),
+            keystrokes: keystrokes,
             hotkey: FnKeyMonitor(),
             permissions: permissions,
             contextProvider: FrontmostAppContextProvider()

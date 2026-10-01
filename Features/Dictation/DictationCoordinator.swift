@@ -10,12 +10,14 @@ final class DictationCoordinator {
     private(set) var state: DictationState = .preparing(progress: nil)
     @ObservationIgnored private(set) var transcription: Task<Void, Never>?
     @ObservationIgnored private(set) var recovery: Task<Void, Never>?
-    @ObservationIgnored private var mode: DictationMode = .standard
+    @ObservationIgnored private var context = CommandContext(mode: .standard, bundleIdentifier: nil)
+    @ObservationIgnored private var lastInsertion: LastInsertion?
 
     private let audio: AudioCapturing
     private let transcriber: Transcribing
     private let processor: TextProcessing
     private let inserter: TextInserting
+    private let keystrokes: KeystrokeSending
     private let hotkey: HotkeyMonitoring
     private let permissions: PermissionChecking
     private let contextProvider: AppContextProviding
@@ -26,6 +28,7 @@ final class DictationCoordinator {
         transcriber: Transcribing,
         processor: TextProcessing,
         inserter: TextInserting,
+        keystrokes: KeystrokeSending,
         hotkey: HotkeyMonitoring,
         permissions: PermissionChecking,
         contextProvider: AppContextProviding,
@@ -35,6 +38,7 @@ final class DictationCoordinator {
         self.transcriber = transcriber
         self.processor = processor
         self.inserter = inserter
+        self.keystrokes = keystrokes
         self.hotkey = hotkey
         self.permissions = permissions
         self.contextProvider = contextProvider
@@ -67,6 +71,7 @@ final class DictationCoordinator {
         case (.pressed, .idle): beginRecording()
         case (.released, .recording): finishRecording()
         case (.cancelled, .recording): cancelRecording()
+        case (.userInput, _): lastInsertion = nil
         default: break
         }
     }
@@ -78,8 +83,8 @@ final class DictationCoordinator {
         do {
             try audio.start()
             state = .recording(level: 0)
-            mode = DictationMode(contextProvider.current())
-            Logger.dictation.info("Mode \(self.mode.rawValue, privacy: .public)")
+            context = CommandContext(contextProvider.current())
+            Logger.dictation.info("Mode \(self.context.mode.rawValue, privacy: .public)")
         } catch {
             fail(error.localizedDescription)
         }
@@ -94,24 +99,45 @@ final class DictationCoordinator {
             return
         }
         state = .transcribing
-        transcription = Task { [mode = self.mode] in await transcribeAndInsert(samples, mode: mode) }
+        transcription = Task { [context = self.context] in await transcribeAndRoute(samples, in: context) }
     }
 
     private func cancelRecording() {
         _ = audio.stop()
+        lastInsertion = nil
         state = .idle
     }
 
-    private func transcribeAndInsert(_ samples: [Float], mode: DictationMode) async {
+    private func transcribeAndRoute(_ samples: [Float], in context: CommandContext) async {
         do {
             let transcript = try await transcriber.transcribe(samples)
             Logger.dictation.info("Transcript \(transcript.count) characters")
-            if !transcript.isEmpty {
-                try await inserter.insert(try await processor.process(transcript, mode: mode))
+            switch Intent(transcript) {
+            case .command(let command):
+                return run(command, in: context)
+            case .dictate(let text) where !text.isEmpty:
+                let processed = try await processor.process(text, mode: context.mode)
+                try await inserter.insert(processed)
+                lastInsertion = LastInsertion(characterCount: processed.count, bundleIdentifier: context.bundleIdentifier)
+            case .dictate:
+                break
             }
             state = .idle
         } catch {
             fail(error.localizedDescription)
+        }
+    }
+
+    private func run(_ command: VoiceCommand, in context: CommandContext) {
+        Logger.dictation.info("Command \(command.rawValue, privacy: .public)")
+        let plan = command.plan(in: context, after: lastInsertion)
+        lastInsertion = nil
+        switch plan {
+        case .keys(let chords):
+            keystrokes.send(chords)
+            state = .idle
+        case .unavailable(let message):
+            fail(message)
         }
     }
 

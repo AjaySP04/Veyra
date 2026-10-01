@@ -9,15 +9,23 @@ final class AppDependencies {
     init() {
         let permissions = PermissionService()
         let keystrokes = CGEventKeystrokeSender()
+        let client = OllamaClient()
+        let openTool = OpenTool(
+            apps: InstalledAppDirectory(),
+            files: SpotlightFileSearcher(),
+            workspace: NSWorkspaceOpener(),
+            home: FileManager.default.homeDirectoryForCurrentUser
+        )
         let coordinator = DictationCoordinator(
             audio: AudioRecorder(),
             transcriber: WhisperKitTranscriber(),
-            processor: OllamaTextProcessor(client: OllamaClient()),
+            processor: OllamaTextProcessor(client: client),
             inserter: PasteboardTextInserter(pasteboard: NSPasteboard.general, keystrokes: keystrokes),
             keystrokes: keystrokes,
             hotkey: FnKeyMonitor(),
             permissions: permissions,
-            contextProvider: FrontmostAppContextProvider()
+            contextProvider: FrontmostAppContextProvider(),
+            agent: AgentRunner(caller: client, registry: ToolRegistry([openTool]))
         )
         self.permissions = permissions
         self.coordinator = coordinator

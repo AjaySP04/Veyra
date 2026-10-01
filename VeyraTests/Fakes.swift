@@ -239,3 +239,14 @@ final class FakeWorkspace: WorkspaceOpening {
         launched.append(url)
     }
 }
+
+@MainActor
+final class FakeAgent: AgentRunning {
+    var outcome = AgentOutcome.done("Opened Slack")
+    private(set) var transcripts: [String] = []
+
+    func run(_ transcript: String) async -> AgentOutcome {
+        transcripts.append(transcript)
+        return outcome
+    }
+}

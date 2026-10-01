@@ -24,6 +24,7 @@ final class DictationCoordinator {
     private let hotkey: HotkeyMonitoring
     private let permissions: PermissionChecking
     private let contextProvider: AppContextProviding
+    private let agent: AgentRunning
     private let isSecureInputEnabled: () -> Bool
     private let failureDisplayDuration: Duration
 
@@ -36,6 +37,7 @@ final class DictationCoordinator {
         hotkey: HotkeyMonitoring,
         permissions: PermissionChecking,
         contextProvider: AppContextProviding,
+        agent: AgentRunning,
         isSecureInputEnabled: @escaping () -> Bool = { IsSecureEventInputEnabled() },
         failureDisplayDuration: Duration = .seconds(2)
     ) {
@@ -47,6 +49,7 @@ final class DictationCoordinator {
         self.hotkey = hotkey
         self.permissions = permissions
         self.contextProvider = contextProvider
+        self.agent = agent
         self.isSecureInputEnabled = isSecureInputEnabled
         self.failureDisplayDuration = failureDisplayDuration
     }
@@ -108,7 +111,12 @@ final class DictationCoordinator {
             return
         }
         state = .transcribing
-        transcription = Task { [context = self.context] in await transcribeAndRoute(samples, in: context) }
+        transcription = Task { [context = self.context, gesture = self.gesture] in
+            switch gesture {
+            case .dictate: await transcribeAndRoute(samples, in: context)
+            case .act: await transcribeAndAct(samples)
+            }
+        }
     }
 
     private func cancelRecording() {
@@ -141,6 +149,24 @@ final class DictationCoordinator {
         }
     }
 
+    private func transcribeAndAct(_ samples: [Float]) async {
+        lastInsertion = nil
+        do {
+            let transcript = try await transcriber.transcribe(samples)
+            guard !transcript.isEmpty else {
+                state = .idle
+                return
+            }
+            state = .acting
+            switch await agent.run(transcript) {
+            case .done(let message): showBriefly(.acted(message: message))
+            case .failed(let message): showBriefly(.failed(message: message))
+            }
+        } catch {
+            fail(error.localizedDescription)
+        }
+    }
+
     private func run(_ command: VoiceCommand, in context: CommandContext) {
         Logger.dictation.info("Command \(command.rawValue, privacy: .public)")
         let insertion = isSecureInputEnabled() ? nil : lastInsertion
@@ -160,10 +186,14 @@ final class DictationCoordinator {
 
     private func fail(_ message: String) {
         Logger.dictation.error("\(message, privacy: .public)")
-        state = .failed(message: message)
+        showBriefly(.failed(message: message))
+    }
+
+    private func showBriefly(_ shown: DictationState) {
+        state = shown
         recovery = Task { [failureDisplayDuration] in
             try? await Task.sleep(for: failureDisplayDuration)
-            if state == .failed(message: message) { state = .idle }
+            if state == shown { state = .idle }
         }
     }
 

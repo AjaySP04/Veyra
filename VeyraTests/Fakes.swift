@@ -32,12 +32,19 @@ final class FakeKeystrokes: KeystrokeSending {
     private let pasteboard: FakePasteboard
     var sideEffect: () -> Void = {}
     private(set) var pastedTexts: [String?] = []
+    private(set) var sentChords: [[KeyChord]] = []
 
     init(pasteboard: FakePasteboard) {
         self.pasteboard = pasteboard
     }
 
-    func sendPaste() {
+    convenience init() {
+        self.init(pasteboard: FakePasteboard())
+    }
+
+    func send(_ chords: [KeyChord]) {
+        sentChords.append(chords)
+        guard chords == [.paste] else { return }
         pastedTexts.append(pasteboard.string)
         sideEffect()
     }

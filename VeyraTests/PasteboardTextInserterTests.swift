@@ -20,6 +20,11 @@ struct PasteboardTextInserterTests {
         #expect(pasteboard.string == "old")
     }
 
+    @Test func pastesWithCommandV() async throws {
+        try await inserter.insert("hello")
+        #expect(keystrokes.sentChords == [[.paste]])
+    }
+
     @Test func restoresNonTextClipboard() async throws {
         let original: [[String: Data]] = [
             ["public.png": Data([1, 2, 3]), "public.tiff": Data([4])],

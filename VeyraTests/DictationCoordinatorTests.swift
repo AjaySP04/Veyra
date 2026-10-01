@@ -6,9 +6,11 @@ struct DictationCoordinatorTests {
     private let audio = FakeAudio()
     private let transcriber = FakeTranscriber()
     private let inserter = FakeInserter()
+    private let keystrokes = FakeKeystrokes()
     private let hotkey = FakeHotkey()
     private let permissions = FakePermissions()
     private let context = FakeAppContextProvider()
+    private let secureInput = FakeSecureInput()
 
     private func readyCoordinator(
         processor: TextProcessing = PassthroughTextProcessor(),
@@ -19,9 +21,11 @@ struct DictationCoordinatorTests {
             transcriber: transcriber,
             processor: processor,
             inserter: inserter,
+            keystrokes: keystrokes,
             hotkey: hotkey,
             permissions: permissions,
             contextProvider: context,
+            isSecureInputEnabled: { [secureInput] in secureInput.isEnabled },
             failureDisplayDuration: failureDisplayDuration
         )
         await coordinator.start()
@@ -31,6 +35,11 @@ struct DictationCoordinatorTests {
     private func dictate(_ coordinator: DictationCoordinator) async {
         hotkey.send(.pressed, .released)
         await coordinator.transcription?.value
+    }
+
+    private func say(_ transcript: String, to coordinator: DictationCoordinator) async {
+        transcriber.transcript = transcript
+        await dictate(coordinator)
     }
 
     @Test func becomesIdleWhenModelIsReady() async {
@@ -210,5 +219,141 @@ struct DictationCoordinatorTests {
         hotkey.send(.pressed)
         #expect(recordingWhenRead == true)
         #expect(coordinator.state == .recording(level: 0))
+    }
+
+    @Test func commandSendsKeysWithoutProcessingOrInserting() async {
+        let processor = RecordingProcessor()
+        let coordinator = await readyCoordinator(processor: processor)
+        await say("Undo that.", to: coordinator)
+        #expect(keystrokes.sentChords == [[.undo]])
+        #expect(processor.modes.isEmpty)
+        #expect(inserter.inserted.isEmpty)
+        #expect(coordinator.state == .idle)
+    }
+
+    @Test func commandUsesModeOfAppAtPress() async {
+        context.context = AppContext(bundleIdentifier: "com.tinyspeck.slackmacgap", windowTitle: nil)
+        let coordinator = await readyCoordinator()
+        await say("New line", to: coordinator)
+        #expect(keystrokes.sentChords == [[.softReturn]])
+    }
+
+    @Test func unavailableCommandShowsReasonAndTypesNothing() async {
+        context.context = AppContext(bundleIdentifier: "com.mitchellh.ghostty", windowTitle: nil)
+        let coordinator = await readyCoordinator()
+        await say("New line.", to: coordinator)
+        #expect(coordinator.state == .failed(message: "New line isn't available in Terminal"))
+        #expect(keystrokes.sentChords.isEmpty)
+        #expect(inserter.inserted.isEmpty)
+    }
+
+    @Test func scratchThatDeletesLastInsertion() async {
+        let coordinator = await readyCoordinator()
+        await dictate(coordinator)
+        await say("Scratch that.", to: coordinator)
+        #expect(keystrokes.sentChords == [Array(repeating: .deleteBackward, count: "hello world".count)])
+    }
+
+    @Test func scratchCountsVisibleCharacters() async {
+        let coordinator = await readyCoordinator()
+        await say("👍🏽 ok", to: coordinator)
+        await say("scratch that", to: coordinator)
+        #expect(keystrokes.sentChords == [Array(repeating: .deleteBackward, count: 4)])
+    }
+
+    @Test func scratchCountsProcessedText() async {
+        let coordinator = await readyCoordinator(processor: AppendingProcessor(suffix: "!!"))
+        await dictate(coordinator)
+        await say("scratch that", to: coordinator)
+        #expect(keystrokes.sentChords == [Array(repeating: .deleteBackward, count: "hello world!!".count)])
+    }
+
+    @Test func scratchTwiceDeletesOnlyOnce() async {
+        let coordinator = await readyCoordinator()
+        await dictate(coordinator)
+        await say("scratch that", to: coordinator)
+        await say("scratch that", to: coordinator)
+        #expect(keystrokes.sentChords.count == 1)
+        #expect(coordinator.state == .failed(message: "Nothing to scratch"))
+    }
+
+    @Test func typingAfterInsertionPreventsScratch() async {
+        let coordinator = await readyCoordinator()
+        await dictate(coordinator)
+        hotkey.send(.userInput)
+        await say("scratch that", to: coordinator)
+        #expect(keystrokes.sentChords.isEmpty)
+        #expect(coordinator.state == .failed(message: "Nothing to scratch"))
+    }
+
+    @Test func typingDuringTranscriptionKeepsTheNewInsertion() async {
+        let coordinator = await readyCoordinator()
+        hotkey.send(.pressed, .released, .userInput)
+        await coordinator.transcription?.value
+        await say("scratch that", to: coordinator)
+        #expect(keystrokes.sentChords == [Array(repeating: .deleteBackward, count: "hello world".count)])
+    }
+
+    @Test func switchingAppsPreventsScratch() async {
+        context.context = AppContext(bundleIdentifier: "com.apple.Notes", windowTitle: nil)
+        let coordinator = await readyCoordinator()
+        await dictate(coordinator)
+        context.context = AppContext(bundleIdentifier: "com.tinyspeck.slackmacgap", windowTitle: nil)
+        await say("scratch that", to: coordinator)
+        #expect(keystrokes.sentChords.isEmpty)
+    }
+
+    @Test func otherCommandPreventsScratch() async {
+        let coordinator = await readyCoordinator()
+        await dictate(coordinator)
+        await say("undo", to: coordinator)
+        await say("scratch that", to: coordinator)
+        #expect(keystrokes.sentChords == [[.undo]])
+    }
+
+    @Test func cancelledRecordingPreventsScratch() async {
+        let coordinator = await readyCoordinator()
+        await dictate(coordinator)
+        hotkey.send(.pressed, .cancelled)
+        await say("scratch that", to: coordinator)
+        #expect(keystrokes.sentChords.isEmpty)
+    }
+
+    @Test func typingWhileTheInsertionLandsPreventsScratch() async {
+        let coordinator = await readyCoordinator()
+        inserter.onInsert = { [hotkey] in hotkey.send(.userInput) }
+        await dictate(coordinator)
+        await say("scratch that", to: coordinator)
+        #expect(keystrokes.sentChords.isEmpty)
+        #expect(coordinator.state == .failed(message: "Nothing to scratch"))
+    }
+
+    @Test func secureInputAtScratchPreventsIt() async {
+        let coordinator = await readyCoordinator()
+        await dictate(coordinator)
+        secureInput.isEnabled = true
+        await say("scratch that", to: coordinator)
+        #expect(keystrokes.sentChords.isEmpty)
+        #expect(coordinator.state == .failed(message: "Nothing to scratch"))
+    }
+
+    @Test func secureInputAtInsertionPreventsScratch() async {
+        secureInput.isEnabled = true
+        let coordinator = await readyCoordinator()
+        await dictate(coordinator)
+        secureInput.isEnabled = false
+        await say("scratch that", to: coordinator)
+        #expect(keystrokes.sentChords.isEmpty)
+    }
+
+    @Test func appSwitchBeforeCommandRunsCancelsIt() async {
+        context.context = AppContext(bundleIdentifier: "com.apple.Notes", windowTitle: nil)
+        let coordinator = await readyCoordinator()
+        transcriber.transcript = "new line"
+        hotkey.send(.pressed, .released)
+        context.context = AppContext(bundleIdentifier: "com.mitchellh.ghostty", windowTitle: nil)
+        await coordinator.transcription?.value
+        #expect(keystrokes.sentChords.isEmpty)
+        #expect(coordinator.state == .failed(message: "Command cancelled because the app changed"))
     }
 }

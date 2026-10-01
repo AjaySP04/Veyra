@@ -27,8 +27,20 @@ struct FnKeyTrackerTests {
         #expect(events([fnDown, .flagsChanged(fn: true, otherModifiers: true), fnUp]) == [.pressed, .cancelled])
     }
 
-    @Test func keyDownWithoutFnIsIgnored() {
-        #expect(events([.keyDown]).isEmpty)
+    @Test func keyDownWithoutFnIsUserInput() {
+        #expect(events([.keyDown]) == [.userInput])
+    }
+
+    @Test func mouseDownWithoutFnIsUserInput() {
+        #expect(events([.mouseDown]) == [.userInput])
+    }
+
+    @Test func mouseDownWhileHeldIsIgnored() {
+        #expect(events([fnDown, .mouseDown, fnUp]) == [.pressed, .released])
+    }
+
+    @Test func typingAfterReleaseIsUserInput() {
+        #expect(events([fnDown, fnUp, .keyDown]) == [.pressed, .released, .userInput])
     }
 
     @Test func worksAgainAfterCancelledPress() {

@@ -33,7 +33,7 @@ struct DictationCoordinatorTests {
     }
 
     private func dictate(_ coordinator: DictationCoordinator) async {
-        hotkey.send(.pressed, .released)
+        hotkey.send(.pressed(.dictate), .released)
         await coordinator.transcription?.value
     }
 
@@ -51,7 +51,7 @@ struct DictationCoordinatorTests {
     @Test func modelFailureMakesDictationUnavailable() async {
         transcriber.prepareError = TestError()
         let coordinator = await readyCoordinator()
-        hotkey.send(.pressed)
+        hotkey.send(.pressed(.dictate))
         #expect(coordinator.state == .unavailable(message: "boom"))
         #expect(!audio.isRecording)
     }
@@ -72,7 +72,7 @@ struct DictationCoordinatorTests {
 
     @Test func pressStartsRecordingAndReportsLevel() async {
         let coordinator = await readyCoordinator()
-        hotkey.send(.pressed)
+        hotkey.send(.pressed(.dictate))
         audio.levelHandler?(0.7)
         #expect(audio.isRecording)
         #expect(coordinator.state == .recording(level: 0.7))
@@ -130,7 +130,7 @@ struct DictationCoordinatorTests {
 
     @Test func pressWhileTranscribingIsIgnored() async {
         let coordinator = await readyCoordinator()
-        hotkey.send(.pressed, .released, .pressed)
+        hotkey.send(.pressed(.dictate), .released, .pressed(.dictate))
         #expect(coordinator.state == .transcribing)
         #expect(!audio.isRecording)
         await coordinator.transcription?.value
@@ -140,7 +140,7 @@ struct DictationCoordinatorTests {
 
     @Test func cancelDiscardsRecording() async {
         let coordinator = await readyCoordinator()
-        hotkey.send(.pressed, .cancelled)
+        hotkey.send(.pressed(.dictate), .cancelled)
         #expect(!audio.isRecording)
         #expect(coordinator.state == .idle)
         #expect(transcriber.receivedSamples == nil)
@@ -149,7 +149,7 @@ struct DictationCoordinatorTests {
     @Test func missingPermissionBlocksRecording() async {
         permissions.denied = [.accessibility]
         let coordinator = await readyCoordinator()
-        hotkey.send(.pressed)
+        hotkey.send(.pressed(.dictate))
         #expect(!audio.isRecording)
         #expect(coordinator.state == .failed(message: "Accessibility access is required"))
     }
@@ -157,7 +157,7 @@ struct DictationCoordinatorTests {
     @Test func audioStartErrorShowsFailure() async {
         audio.startError = TestError()
         let coordinator = await readyCoordinator()
-        hotkey.send(.pressed)
+        hotkey.send(.pressed(.dictate))
         #expect(coordinator.state == .failed(message: "boom"))
     }
 
@@ -195,7 +195,7 @@ struct DictationCoordinatorTests {
         let processor = RecordingProcessor()
         context.context = AppContext(bundleIdentifier: "com.mitchellh.ghostty", windowTitle: nil)
         let coordinator = await readyCoordinator(processor: processor)
-        hotkey.send(.pressed)
+        hotkey.send(.pressed(.dictate))
         context.context = AppContext(bundleIdentifier: "com.apple.mail", windowTitle: nil)
         hotkey.send(.released)
         await coordinator.transcription?.value
@@ -216,7 +216,7 @@ struct DictationCoordinatorTests {
         var recordingWhenRead: Bool?
         context.onRead = { [audio] in recordingWhenRead = audio.isRecording }
         let coordinator = await readyCoordinator()
-        hotkey.send(.pressed)
+        hotkey.send(.pressed(.dictate))
         #expect(recordingWhenRead == true)
         #expect(coordinator.state == .recording(level: 0))
     }
@@ -288,7 +288,7 @@ struct DictationCoordinatorTests {
 
     @Test func typingDuringTranscriptionKeepsTheNewInsertion() async {
         let coordinator = await readyCoordinator()
-        hotkey.send(.pressed, .released, .userInput)
+        hotkey.send(.pressed(.dictate), .released, .userInput)
         await coordinator.transcription?.value
         await say("scratch that", to: coordinator)
         #expect(keystrokes.sentChords == [Array(repeating: .deleteBackward, count: "hello world".count)])
@@ -314,7 +314,7 @@ struct DictationCoordinatorTests {
     @Test func cancelledRecordingPreventsScratch() async {
         let coordinator = await readyCoordinator()
         await dictate(coordinator)
-        hotkey.send(.pressed, .cancelled)
+        hotkey.send(.pressed(.dictate), .cancelled)
         await say("scratch that", to: coordinator)
         #expect(keystrokes.sentChords.isEmpty)
     }
@@ -350,7 +350,7 @@ struct DictationCoordinatorTests {
         context.context = AppContext(bundleIdentifier: "com.apple.Notes", windowTitle: nil)
         let coordinator = await readyCoordinator()
         transcriber.transcript = "new line"
-        hotkey.send(.pressed, .released)
+        hotkey.send(.pressed(.dictate), .released)
         context.context = AppContext(bundleIdentifier: "com.mitchellh.ghostty", windowTitle: nil)
         await coordinator.transcription?.value
         #expect(keystrokes.sentChords.isEmpty)

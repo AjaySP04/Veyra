@@ -9,6 +9,7 @@ final class DictationCoordinator {
     private static let silenceLevel: Float = 0.1
 
     private(set) var state: DictationState = .preparing(progress: nil)
+    private(set) var gesture: Gesture = .dictate
     @ObservationIgnored private(set) var transcription: Task<Void, Never>?
     @ObservationIgnored private(set) var recovery: Task<Void, Never>?
     @ObservationIgnored private var context = CommandContext(mode: .standard, bundleIdentifier: nil)
@@ -73,7 +74,7 @@ final class DictationCoordinator {
 
     func handle(_ event: HotkeyEvent) {
         switch (event, state) {
-        case (.pressed, .idle): beginRecording()
+        case (.pressed(let gesture), .idle): beginRecording(gesture)
         case (.released, .recording): finishRecording()
         case (.cancelled, .recording): cancelRecording()
         case (.userInput, _):
@@ -83,13 +84,14 @@ final class DictationCoordinator {
         }
     }
 
-    private func beginRecording() {
+    private func beginRecording(_ gesture: Gesture) {
         if let missing = Permission.allCases.first(where: { !permissions.isGranted($0) }) {
             return fail("\(missing.title) access is required")
         }
         do {
             try audio.start()
             state = .recording(level: 0)
+            self.gesture = gesture
             context = CommandContext(contextProvider.current())
             Logger.dictation.info("Mode \(self.context.mode.rawValue, privacy: .public)")
         } catch {

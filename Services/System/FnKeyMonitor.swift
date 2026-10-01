@@ -45,7 +45,8 @@ private extension KeyInput {
             let flags = event.modifierFlags
             self = .flagsChanged(
                 fn: flags.contains(.function),
-                otherModifiers: !flags.isDisjoint(with: [.shift, .control, .option, .command])
+                control: flags.contains(.control),
+                otherModifiers: !flags.isDisjoint(with: [.shift, .option, .command])
             )
         default:
             return nil

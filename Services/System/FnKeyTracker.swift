@@ -1,25 +1,28 @@
 enum KeyInput: Equatable {
-    case flagsChanged(fn: Bool, otherModifiers: Bool)
+    case flagsChanged(fn: Bool, control: Bool = false, otherModifiers: Bool = false)
     case keyDown
     case mouseDown
 }
 
 struct FnKeyTracker {
-    private var isHeld = false
+    private var held: Gesture?
     private var isCancelled = false
 
     mutating func handle(_ input: KeyInput) -> HotkeyEvent? {
         switch input {
-        case .flagsChanged(fn: true, otherModifiers: false) where !isHeld:
-            isHeld = true
+        case .flagsChanged(fn: true, control: let control, otherModifiers: false) where held == nil:
+            let gesture: Gesture = control ? .act : .dictate
+            held = gesture
             isCancelled = false
-            return .pressed
-        case .flagsChanged(fn: false, otherModifiers: _) where isHeld:
-            isHeld = false
+            return .pressed(gesture)
+        case .flagsChanged(fn: false, control: _, otherModifiers: _) where held != nil:
+            held = nil
             return isCancelled ? nil : .released
-        case .flagsChanged(fn: true, otherModifiers: true) where isHeld, .keyDown where isHeld:
+        case .flagsChanged(fn: true, control: _, otherModifiers: true) where held != nil,
+             .flagsChanged(fn: true, control: true, otherModifiers: _) where held == .dictate,
+             .keyDown where held != nil:
             return cancel()
-        case .keyDown where !isHeld, .mouseDown where !isHeld:
+        case .keyDown where held == nil, .mouseDown where held == nil:
             return .userInput
         default:
             return nil

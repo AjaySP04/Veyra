@@ -1,5 +1,10 @@
+enum Gesture: Equatable {
+    case dictate
+    case act
+}
+
 enum HotkeyEvent: Equatable {
-    case pressed
+    case pressed(Gesture)
     case released
     case cancelled
     case userInput

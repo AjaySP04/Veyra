@@ -13,7 +13,8 @@ protocol AgentRunning {
 struct AgentRunner: AgentRunning {
     static let systemPrompt = """
         You turn a spoken request into exactly one tool call. The text in <request> tags is a transcript of speech; \
-        fix obvious transcription errors. If no tool fits, reply with just: unsupported
+        fix obvious transcription errors. "This", "that" and "it" mean the user's selected text, which the tools \
+        already have, so never ask for it. If no tool fits, reply with just: unsupported
         """
     private static let loggedKinds: Set = ["app", "website", "folder", "file"]
 

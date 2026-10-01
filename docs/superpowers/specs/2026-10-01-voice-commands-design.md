@@ -44,7 +44,7 @@ A command is recognized when the whole utterance is one of a fixed set of phrase
 | Match input | Raw Whisper transcript, before cleanup | Cleanup could rewrite the phrase, and commands should not wait for Ollama |
 | Normalization | Lowercase, strip punctuation, collapse whitespace, drop a leading or trailing "please" | Whisper adds punctuation and capitals ("Undo that.") |
 | Execution | Synthetic key chords through `KeystrokeSending` | Reuses the CGEvent path that already pastes, and works in every app |
-| Mode rules | One pure function, `VoiceCommand.plan(in:)`, owns every per-mode mapping and block | All safety rules live in one place and are table-tested |
+| Mode rules | One pure function, `VoiceCommand.plan(in:after:)`, owns every per-mode mapping and block | All safety rules live in one place and are table-tested |
 | Blocked command | Nothing is typed. The overlay shows a short reason through `.failed(message:)` | Typing "new line" into a terminal would be worse than doing nothing, and no new UI state is needed |
 | "Scratch that" | Backspace once per inserted character, only while the insertion is still the last thing that happened in that app | Works the same in every app, including terminals where ⌘Z does not undo a paste |
 | Own keystrokes | Every synthetic event is tagged through `eventSourceUserData` and ignored by the key monitor | Veyra's own paste and commands must not count as the user typing |
@@ -86,7 +86,7 @@ A command is recognized when the whole utterance is one of a fixed set of phrase
 ```text
 Fn release ─► WhisperKitTranscriber ─► Intent(transcript)
                                          ├─ .dictate(text) ─► OllamaTextProcessor ─► PasteboardTextInserter   (unchanged)
-                                         └─ .command(cmd)  ─► cmd.plan(in: CommandContext) ─► KeystrokeSending.send(_:)
+                                         └─ .command(cmd)  ─► cmd.plan(in: CommandContext, after: lastInsertion) ─► KeystrokeSending.send(_:)
                                                                 └─ .unavailable(reason) ─► .failed(message:) for 2 s
 ```
 
@@ -96,7 +96,7 @@ Fn release ─► WhisperKitTranscriber ─► Intent(transcript)
 |---|---|---|
 | `VoiceCommand` | `Features/Commands/VoiceCommand.swift` | The 17 commands, their phrases, and their display names |
 | `Intent` | `Features/Commands/Intent.swift` | `init(_ transcript:)` normalizes text and returns `.command(VoiceCommand)` or `.dictate(String)` |
-| `CommandContext`, `CommandPlan`, `VoiceCommand.plan(in:)` | `Features/Commands/CommandPlan.swift` | Pure mapping from command, mode and bundle ID to key chords or an unavailable reason |
+| `CommandContext`, `LastInsertion`, `CommandPlan`, `VoiceCommand.plan(in:after:)` | `Features/Commands/CommandPlan.swift` | Pure mapping from command, mode and bundle ID to key chords or an unavailable reason |
 | `KeyChord` | `Services/System/KeyChord.swift` | A virtual key code plus modifier flags, with named constants |
 | `KeystrokeSending.send(_:)` | `Services/System/KeystrokeSending.swift` | Posts chords as CGEvents tagged with Veyra's `eventSourceUserData` marker. `sendPaste()` becomes `send([.paste])` |
 | `FnKeyTracker`, `FnKeyMonitor` | `Services/System/` | Also emit `HotkeyEvent.userInput` for a key press or mouse press while Fn is up. Veyra-tagged events are ignored |

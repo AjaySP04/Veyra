@@ -1,6 +1,6 @@
 import Foundation
 
-struct OllamaClient: ChatCompleting {
+struct OllamaClient: ChatCompleting, ToolCalling {
     private let baseURL: URL
     private let session: URLSession
 
@@ -10,11 +10,16 @@ struct OllamaClient: ChatCompleting {
     }
 
     func complete(_ request: ChatRequest) async throws -> String {
-        let (data, response) = try await session.data(for: urlRequest(for: request))
-        guard let status = (response as? HTTPURLResponse)?.statusCode else { throw ChatError.malformedResponse }
-        guard (200..<300).contains(status) else { throw ChatError.badStatus(status) }
-        guard let reply = try? JSONDecoder().decode(ChatReply.self, from: data) else { throw ChatError.malformedResponse }
-        return reply.message.content
+        guard let content = try await send(urlRequest(for: request)).message.content else { throw ChatError.malformedResponse }
+        return content
+    }
+
+    func callTool(_ request: ToolRequest) async throws -> ToolReply {
+        let message = try await send(urlRequest(for: request)).message
+        if let call = message.toolCalls?.first {
+            return .call(ToolCall(name: call.function.name, arguments: call.function.arguments))
+        }
+        return .text(message.content ?? "")
     }
 
     func warmUp(_ model: String) {
@@ -26,8 +31,20 @@ struct OllamaClient: ChatCompleting {
         try post("api/chat", body: ChatBody(request), timeout: request.timeout)
     }
 
+    func urlRequest(for request: ToolRequest) throws -> URLRequest {
+        try post("api/chat", body: ChatBody(request), timeout: request.timeout)
+    }
+
     func warmUpRequest(for model: String) throws -> URLRequest {
         try post("api/generate", body: WarmUpBody(model: model), timeout: .seconds(300))
+    }
+
+    private func send(_ urlRequest: URLRequest) async throws -> ChatReply {
+        let (data, response) = try await session.data(for: urlRequest)
+        guard let status = (response as? HTTPURLResponse)?.statusCode else { throw ChatError.malformedResponse }
+        guard (200..<300).contains(status) else { throw ChatError.badStatus(status) }
+        guard let reply = try? JSONDecoder().decode(ChatReply.self, from: data) else { throw ChatError.malformedResponse }
+        return reply
     }
 
     private func post(_ path: String, body: some Encodable, timeout: Duration) throws -> URLRequest {
@@ -62,6 +79,7 @@ private nonisolated struct ChatBody: Encodable {
 
     let model: String
     let messages: [Message]
+    let tools: [ToolBody]?
     let stream = false
     let think = false
     static let keepAlive = "30m"
@@ -70,7 +88,7 @@ private nonisolated struct ChatBody: Encodable {
     let options = Options(temperature: 0)
 
     enum CodingKeys: String, CodingKey {
-        case model, messages, stream, think, options
+        case model, messages, stream, think, options, tools
         case keepAlive = "keep_alive"
     }
 
@@ -80,12 +98,73 @@ private nonisolated struct ChatBody: Encodable {
             Message(role: "system", content: request.system),
             Message(role: "user", content: request.user),
         ]
+        tools = nil
+    }
+
+    init(_ request: ToolRequest) {
+        model = request.model
+        messages = [
+            Message(role: "system", content: request.system),
+            Message(role: "user", content: request.user),
+        ]
+        tools = request.tools.map(ToolBody.init)
+    }
+}
+
+private nonisolated struct ToolBody: Encodable {
+    struct Function: Encodable {
+        let name: String
+        let description: String
+        let parameters: Parameters
+    }
+
+    struct Parameters: Encodable {
+        let type = "object"
+        let required: [String]
+        let properties: [String: Property]
+    }
+
+    struct Property: Encodable {
+        let type = "string"
+        let description: String
+        let `enum`: [String]?
+    }
+
+    let type = "function"
+    let function: Function
+
+    init(_ definition: ToolDefinition) {
+        function = Function(
+            name: definition.name,
+            description: definition.description,
+            parameters: Parameters(
+                required: definition.parameters.map(\.name),
+                properties: Dictionary(uniqueKeysWithValues: definition.parameters.map {
+                    ($0.name, Property(description: $0.description, enum: $0.allowed))
+                })
+            )
+        )
     }
 }
 
 private nonisolated struct ChatReply: Decodable {
     struct Message: Decodable {
-        let content: String
+        let content: String?
+        let toolCalls: [ToolCallBody]?
+
+        enum CodingKeys: String, CodingKey {
+            case content
+            case toolCalls = "tool_calls"
+        }
+    }
+
+    struct ToolCallBody: Decodable {
+        struct Function: Decodable {
+            let name: String
+            let arguments: [String: String]
+        }
+
+        let function: Function
     }
 
     let message: Message

@@ -71,4 +71,57 @@ struct OllamaClientTests {
         StubURLProtocol.body = Data(#"{"done":true}"#.utf8)
         await #expect(throws: ChatError.malformedResponse) { try await client.complete(request) }
     }
+
+    private let toolRequest = ToolRequest(
+        model: "gemma4:latest", system: "sys", user: "open slack",
+        tools: [ToolDefinition(name: "open", description: "Open things", parameters: [
+            ToolParameter(name: "kind", description: "What", allowed: ["app", "file"]),
+            ToolParameter(name: "target", description: "Name", allowed: nil),
+        ])],
+        timeout: .seconds(6)
+    )
+
+    @Test func buildsToolRequest() throws {
+        let urlRequest = try client.urlRequest(for: toolRequest)
+        #expect(urlRequest.url?.absoluteString == "http://localhost:11434/api/chat")
+        let body = try #require(JSONSerialization.jsonObject(with: urlRequest.httpBody ?? Data()) as? [String: Any])
+        #expect(body["think"] as? Bool == false)
+        let tools = try #require(body["tools"] as? [[String: Any]])
+        #expect(tools.count == 1)
+        #expect(tools[0]["type"] as? String == "function")
+        let function = try #require(tools[0]["function"] as? [String: Any])
+        #expect(function["name"] as? String == "open")
+        #expect(function["description"] as? String == "Open things")
+        let parameters = try #require(function["parameters"] as? [String: Any])
+        #expect(parameters["type"] as? String == "object")
+        #expect(parameters["required"] as? [String] == ["kind", "target"])
+        let properties = try #require(parameters["properties"] as? [String: [String: Any]])
+        #expect(properties["kind"]?["type"] as? String == "string")
+        #expect(properties["kind"]?["enum"] as? [String] == ["app", "file"])
+        #expect(properties["target"]?["enum"] == nil)
+        #expect(properties["target"]?["description"] as? String == "Name")
+    }
+
+    @Test func chatRequestHasNoTools() throws {
+        let body = try #require(JSONSerialization.jsonObject(with: client.urlRequest(for: request).httpBody ?? Data()) as? [String: Any])
+        #expect(body["tools"] == nil)
+    }
+
+    @Test func decodesToolCall() async throws {
+        StubURLProtocol.status = 200
+        StubURLProtocol.body = Data(#"{"message":{"role":"assistant","content":"","tool_calls":[{"function":{"name":"open","arguments":{"kind":"app","target":"Slack"}}}]},"done":true}"#.utf8)
+        #expect(try await client.callTool(toolRequest) == .call(ToolCall(name: "open", arguments: ["kind": "app", "target": "Slack"])))
+    }
+
+    @Test func decodesTextReply() async throws {
+        StubURLProtocol.status = 200
+        StubURLProtocol.body = Data(#"{"message":{"role":"assistant","content":"unsupported"},"done":true}"#.utf8)
+        #expect(try await client.callTool(toolRequest) == .text("unsupported"))
+    }
+
+    @Test func toolCallThrowsOnErrorStatus() async {
+        StubURLProtocol.status = 500
+        StubURLProtocol.body = Data()
+        await #expect(throws: ChatError.badStatus(500)) { try await client.callTool(toolRequest) }
+    }
 }

@@ -8,6 +8,8 @@ final class FakePasteboard: Pasteboard {
     private(set) var changeCount = 0
     var items: [[String: Data]] = []
 
+    func readText() -> String? { string }
+
     var string: String? {
         items.first?[Self.textType].flatMap { String(data: $0, encoding: .utf8) }
     }
@@ -31,6 +33,7 @@ final class FakePasteboard: Pasteboard {
 final class FakeKeystrokes: KeystrokeSending {
     private let pasteboard: FakePasteboard
     var sideEffect: () -> Void = {}
+    var onSend: ([KeyChord]) -> Void = { _ in }
     private(set) var pastedTexts: [String?] = []
     private(set) var sentChords: [[KeyChord]] = []
 
@@ -44,6 +47,7 @@ final class FakeKeystrokes: KeystrokeSending {
 
     func send(_ chords: [KeyChord]) {
         sentChords.append(chords)
+        onSend(chords)
         guard chords == [.paste] else { return }
         pastedTexts.append(pasteboard.string)
         sideEffect()

@@ -206,3 +206,36 @@ final class FakeTool: Tool {
         }
     }
 }
+
+struct FakeAppListing: AppListing {
+    var apps: [InstalledApp] = []
+    func installedApps() -> [InstalledApp] { apps }
+}
+
+@MainActor
+final class FakeFileSearching: FileSearching {
+    var results: [FileResult] = []
+    private(set) var searches: [(words: [String], foldersOnly: Bool)] = []
+
+    func search(_ words: [String], foldersOnly: Bool) async -> [FileResult] {
+        searches.append((words, foldersOnly))
+        return results
+    }
+}
+
+@MainActor
+final class FakeWorkspace: WorkspaceOpening {
+    var error: Error?
+    private(set) var opened: [URL] = []
+    private(set) var launched: [URL] = []
+
+    func open(_ url: URL) async throws {
+        if let error { throw error }
+        opened.append(url)
+    }
+
+    func openApplication(at url: URL) async throws {
+        if let error { throw error }
+        launched.append(url)
+    }
+}

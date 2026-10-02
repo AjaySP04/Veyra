@@ -9,7 +9,7 @@ struct VeyraApp: App {
             MenuBarView(coordinator: dependencies.coordinator, permissions: dependencies.permissions)
         } label: {
             switch dependencies.coordinator.state.menuBarIcon {
-            case .mark: Image(nsImage: VeyraMark.image(tilt: dependencies.iconAnimator.tilt))
+            case .mark: Image(nsImage: VeyraMark.image(pose: dependencies.iconAnimator.pose))
             case .symbol(let name): Image(systemName: name)
             }
         }

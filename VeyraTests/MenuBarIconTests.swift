@@ -18,25 +18,71 @@ struct MenuBarIconTests {
         #expect(state.menuBarIcon == expected)
     }
 
-    @Test(arguments: [(0.0, 0.0), (0.375, 25.0), (0.75, 0.0), (1.125, -25.0), (1.5, 0.0)])
-    func swingFollowsASine(seconds: Double, degrees: Double) {
-        #expect(abs(MenuBarIconAnimator.tilt(at: .seconds(seconds)) - degrees) < 0.001)
+    @Test func restPoseIsCalm() {
+        #expect(MarkPose.rest == MarkPose(tilt: 0, lift: 0, swell: [0, 0, 0, 0, 0]))
+    }
+
+    @Test func waveTravelsLeftToRight() {
+        let step = MenuBarIconAnimator.barDelay
+        for seconds in stride(from: 0.0, through: 1.6, by: 0.2) {
+            let now = MenuBarIconAnimator.pose(at: .seconds(seconds))
+            let later = MenuBarIconAnimator.pose(at: .seconds(seconds) + step)
+            for bar in 0..<4 {
+                #expect(abs(later.swell[bar + 1] - now.swell[bar]) < 0.0001)
+            }
+        }
+    }
+
+    @Test func boatRidesTheMiddleBarAndStaysGentle() {
+        for seconds in stride(from: 0.0, through: 3.2, by: 0.05) {
+            let pose = MenuBarIconAnimator.pose(at: .seconds(seconds))
+            #expect(abs(pose.tilt) <= MenuBarIconAnimator.maxTilt + 0.0001)
+            #expect(abs(pose.lift) <= MenuBarIconAnimator.maxLift + 0.0001)
+            #expect(pose.swell.allSatisfy { abs($0) <= 1.0001 })
+            #expect(abs(pose.lift - MenuBarIconAnimator.maxLift * pose.swell[2]) < 0.0001)
+        }
     }
 
     @Test func markIsATemplateAtMenuBarSize() {
-        let image = VeyraMark.image(tilt: 0)
+        let image = VeyraMark.image(pose: .rest)
         #expect(image.size == NSSize(width: 18, height: 18))
         #expect(image.isTemplate)
     }
 
-    @Test func swingStartsAndSettlesUpright() async throws {
+    @Test func floatingStartsAndSettlesCalm() async throws {
         let animator = MenuBarIconAnimator()
         animator.update(swinging: true)
         #expect(animator.isSwinging)
         try await Task.sleep(for: .milliseconds(200))
-        #expect(animator.tilt != 0)
+        #expect(animator.pose != .rest)
         animator.update(swinging: false)
         #expect(!animator.isSwinging)
-        #expect(animator.tilt == 0)
+        #expect(animator.pose == .rest)
+    }
+
+    private func alpha(_ image: NSImage, rows: Range<Int>) -> [UInt8] {
+        let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 36, pixelsHigh: 36, bitsPerSample: 8, samplesPerPixel: 4,
+                                   hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
+        image.draw(in: NSRect(x: 0, y: 0, width: 36, height: 36))
+        NSGraphicsContext.restoreGraphicsState()
+        return rows.flatMap { y in (0..<36).map { x in UInt8(rep.colorAt(x: x, y: y)!.alphaComponent * 255) } }
+    }
+
+    @Test func wavesAndBoatBothMoveWhileFloating() {
+        let calm = VeyraMark.image(pose: .rest)
+        let rolling = VeyraMark.image(pose: MenuBarIconAnimator.pose(at: .milliseconds(300)))
+        let bars = 26..<36, letter = 0..<20
+        #expect(alpha(calm, rows: bars).contains { $0 > 128 })
+        #expect(alpha(calm, rows: bars) != alpha(rolling, rows: bars))
+        #expect(alpha(calm, rows: letter) != alpha(rolling, rows: letter))
+    }
+
+    @Test func boatStaysInsideTheIcon() {
+        for seconds in stride(from: 0.0, through: 1.6, by: 0.1) {
+            let image = VeyraMark.image(pose: MenuBarIconAnimator.pose(at: .seconds(seconds)))
+            #expect(!alpha(image, rows: 0..<1).contains { $0 > 0 })
+        }
     }
 }

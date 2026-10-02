@@ -61,7 +61,7 @@ macOS only grants microphone and keyboard access to signed apps, so the build mu
 ./scripts/install.sh
 ```
 
-This builds a Release copy, installs it to `/Applications`, and launches it. A microphone icon appears in the menu bar.
+This builds a Release copy, installs it to `/Applications`, and launches it. A V appears in the menu bar; it swings gently while Veyra is transcribing or working on an action.
 
 ### 5. First launch
 

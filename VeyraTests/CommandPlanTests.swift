@@ -68,8 +68,8 @@ struct CommandPlanTests {
         #expect(plan(command, .terminal, app: ghostty) == .unavailable("\(command.title) isn't available in Terminal"))
     }
 
-    @Test func terminalNeverSendsReturn() {
-        for command in VoiceCommand.allCases {
+    @Test func onlyRunItSendsReturnInTerminal() {
+        for command in VoiceCommand.allCases where command != .pressReturn {
             guard case .keys(let chords) = plan(command, .terminal, app: ghostty) else { continue }
             #expect(!chords.contains { $0.key == KeyChord.returnKey.key })
         }
@@ -90,6 +90,15 @@ struct CommandPlanTests {
         #expect(plan(.undo, .editor, app: app) == .keys([.undo]))
     }
 
+    @Test func runItPressesReturnInTerminal() {
+        #expect(plan(.pressReturn, .terminal, app: ghostty) == .keys([.returnKey]))
+    }
+
+    @Test(arguments: [DictationMode.standard, .editor, .chat, .email])
+    func runItOnlyWorksInTerminal(mode: DictationMode) {
+        #expect(plan(.pressReturn, mode) == .unavailable("Run it only works in Terminal"))
+    }
+
     @Test func scratchDeletesEachInsertedCharacter() {
         let insertion = LastInsertion(text: String(repeating: "a", count: 3), bundleIdentifier: notes)
         #expect(plan(.scratchThat, .editor, app: notes, after: insertion) == .keys(Array(repeating: .deleteBackward, count: 3)))
@@ -98,6 +107,11 @@ struct CommandPlanTests {
     @Test func scratchWorksInTerminal() {
         let insertion = LastInsertion(text: String(repeating: "a", count: 2), bundleIdentifier: ghostty)
         #expect(plan(.scratchThat, .terminal, app: ghostty, after: insertion) == .keys([.deleteBackward, .deleteBackward]))
+    }
+
+    @Test func scratchClearsACommandThatOwnsTheLine() {
+        let insertion = LastInsertion(text: "curl -s https://x.io/?a=1&b=2", bundleIdentifier: ghostty, ownsLine: true)
+        #expect(plan(.scratchThat, .terminal, app: ghostty, after: insertion) == .keys([.shellLineEnd, .shellDeleteLine]))
     }
 
     @Test func scratchWithoutInsertionIsUnavailable() {

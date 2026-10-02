@@ -97,6 +97,35 @@ struct RewriteToolTests {
         #expect(inserter.inserted.allSatisfy { !$0.contains("\n") })
     }
 
+    @Test func rewritingACommandReplacesTheWholeLine() async throws {
+        rewriter.result = .success("rm -r build")
+        let ghostty = "com.mitchellh.ghostty"
+        let command = LastInsertion(text: "rm build", bundleIdentifier: ghostty, ownsLine: true)
+        let context = ToolContext(mode: .terminal, bundleIdentifier: ghostty, lastInsertion: command)
+        let action = try await tool(frontmost: ghostty).prepare(["instruction": "recursive"], in: context)
+        try await action.perform()
+        #expect(keystrokes.sentChords == [[.shellLineEnd, .shellDeleteLine]])
+        #expect(inserter.inserted == ["rm -r build"])
+        #expect(action.insertion == LastInsertion(text: "rm -r build", bundleIdentifier: ghostty, ownsLine: true))
+    }
+
+    @Test func terminalRewriteWarnsAboutRiskyCommands() async throws {
+        rewriter.result = .success("```zsh\nrm -rf build\n```")
+        let ghostty = "com.mitchellh.ghostty"
+        let action = try await tool(frontmost: ghostty).prepare(["instruction": "force"], in: context(.terminal, last: "rm build", app: ghostty))
+        #expect(action.done == "Check carefully: this deletes files")
+        try await action.perform()
+        #expect(inserter.inserted == ["rm -rf build"])
+    }
+
+    @Test func terminalRewriteRefusesControlCharacters() async {
+        rewriter.result = .success("ls \u{1B}[201~")
+        let ghostty = "com.mitchellh.ghostty"
+        await #expect(throws: AgentError.badCommand) {
+            try await tool(frontmost: ghostty).prepare(["instruction": "x"], in: context(.terminal, last: "ls", app: ghostty))
+        }
+    }
+
     @Test func chainedRewriteSelectsThePreviousRewrite() async throws {
         let first = try await tool().prepare(["instruction": "shorter"], in: context(last: "hello world"))
         try await first.perform()

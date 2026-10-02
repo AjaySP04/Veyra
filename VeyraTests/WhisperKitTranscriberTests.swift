@@ -31,4 +31,17 @@ struct WhisperKitTranscriberTests {
         ]
         #expect(WhisperKitTranscriber.speechText(from: segments) == "Hello world.")
     }
+
+    @Test func padsShortClipsPastWhisperKitsEndClip() {
+        let clip = [Float](repeating: 0.5, count: 12_560)
+        let padded = WhisperKitTranscriber.padded(clip)
+        #expect(padded.count == 32_000)
+        #expect(Array(padded.prefix(12_560)) == clip)
+        #expect(padded.dropFirst(12_560).allSatisfy { $0 == 0 })
+    }
+
+    @Test func leavesLongClipsAlone() {
+        let clip = [Float](repeating: 0.5, count: 48_000)
+        #expect(WhisperKitTranscriber.padded(clip) == clip)
+    }
 }

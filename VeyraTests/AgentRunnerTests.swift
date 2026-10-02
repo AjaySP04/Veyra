@@ -31,7 +31,7 @@ struct AgentRunnerTests {
     @Test func textReplyIsUnsupportedWithoutTryingCloud() async {
         caller.replies[local] = .success(.text("unsupported"))
         caller.replies[cloud] = .success(openSlack)
-        #expect(await runner.run("what's the weather") == .failed("I can open things and rewrite text for now"))
+        #expect(await runner.run("what's the weather") == .failed("I can open things, rewrite text and write commands for now"))
         #expect(caller.requests.map(\.model) == [local])
         #expect(tool.performCount == 0)
     }
@@ -59,12 +59,12 @@ struct AgentRunnerTests {
     @Test func unknownToolEverywhereIsUnsupported() async {
         caller.replies[local] = .success(.call(ToolCall(name: "launch", arguments: [:])))
         caller.replies[cloud] = .success(.call(ToolCall(name: "launch", arguments: [:])))
-        #expect(await runner.run("Open Slack.") == .failed("I can open things and rewrite text for now"))
+        #expect(await runner.run("Open Slack.") == .failed("I can open things, rewrite text and write commands for now"))
     }
 
     @Test func malformedThenUnreachableKeepsTheMalformedMessage() async {
         caller.replies[local] = .success(.call(ToolCall(name: "launch", arguments: [:])))
-        #expect(await runner.run("Open Slack.") == .failed("I can open things and rewrite text for now"))
+        #expect(await runner.run("Open Slack.") == .failed("I can open things, rewrite text and write commands for now"))
     }
 
     @Test func noModelReachableNeedsOllama() async {
@@ -89,7 +89,7 @@ struct AgentRunnerTests {
     }
 
     @Test(arguments: [
-        (AgentError.unsupported, "I can open things and rewrite text for now"),
+        (AgentError.unsupported, "I can open things, rewrite text and write commands for now"),
         (.invalidArguments, "Didn't catch what to do"),
         (.unavailable, "Actions need Ollama running"),
         (.noApp("Foo"), "No app called “Foo”"),

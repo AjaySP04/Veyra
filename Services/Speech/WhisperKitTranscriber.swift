@@ -3,6 +3,9 @@ import WhisperKit
 
 final class WhisperKitTranscriber: Transcribing {
     private static let noSpeechThreshold: Float = 0.6
+    /// WhisperKit never decodes the last second of a clip (`windowClipTime`), so a clip of a second or less, like
+    /// "run it", comes back empty. Trailing silence up to 2 s gets short commands decoded.
+    private static let minimumSamples = 2 * WhisperKit.sampleRate
 
     private let variant: String
     private let downloadBase: URL
@@ -41,8 +44,12 @@ final class WhisperKitTranscriber: Transcribing {
 
     func transcribe(_ samples: [Float]) async throws -> String {
         guard let whisperKit else { throw TranscriptionError.modelNotLoaded }
-        let results = try await whisperKit.transcribe(audioArray: samples, decodeOptions: decodingOptions)
+        let results = try await whisperKit.transcribe(audioArray: Self.padded(samples), decodeOptions: decodingOptions)
         return Self.speechText(from: results.flatMap(\.segments))
+    }
+
+    static func padded(_ samples: [Float]) -> [Float] {
+        samples.count >= minimumSamples ? samples : samples + [Float](repeating: 0, count: minimumSamples - samples.count)
     }
 
     static func speechText(from segments: [TranscriptionSegment]) -> String {

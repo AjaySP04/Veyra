@@ -14,6 +14,6 @@ Single-context layout (one `CONTEXT.md` + `docs/adr/` at the repo root). See `do
 - [x] Transcript cleanup with Ollama (`gemma4:latest`, then `gemma4:cloud`) behind `TextProcessing`
 - [x] App-aware modes (email, chat, editor, terminal)
 - [x] Voice commands (undo, delete, formatting, selection and navigation)
-- [ ] Agent actions (8.1 open, 8.2 rewrite done)
+- [ ] Agent actions (8.1 open, 8.2 rewrite, 8.3 shell commands done)
 
 Detailed phases, principles and the long-term vision are in `docs/VISION.md`.

@@ -18,14 +18,16 @@ final class AppDependencies {
             home: FileManager.default.homeDirectoryForCurrentUser
         )
         let inserter = PasteboardTextInserter(pasteboard: NSPasteboard.general, keystrokes: keystrokes)
+        let frontmostApp = { NSWorkspace.shared.frontmostApplication?.bundleIdentifier }
         let rewriteTool = RewriteTool(
             selection: AXSelectionReader(),
             copier: ClipboardCopier(pasteboard: NSPasteboard.general, keystrokes: keystrokes),
             rewriter: OllamaTextRewriter(client: client),
             inserter: inserter,
             keystrokes: keystrokes,
-            frontmostApp: { NSWorkspace.shared.frontmostApplication?.bundleIdentifier }
+            frontmostApp: frontmostApp
         )
+        let shellTool = ShellTool(inserter: inserter, keystrokes: keystrokes, frontmostApp: frontmostApp)
         let coordinator = DictationCoordinator(
             audio: AudioRecorder(),
             transcriber: WhisperKitTranscriber(),
@@ -35,7 +37,7 @@ final class AppDependencies {
             hotkey: FnKeyMonitor(),
             permissions: permissions,
             contextProvider: FrontmostAppContextProvider(),
-            agent: AgentRunner(caller: client, registry: ToolRegistry([openTool, rewriteTool]))
+            agent: AgentRunner(caller: client, registry: ToolRegistry([openTool, rewriteTool, shellTool]))
         )
         self.permissions = permissions
         self.coordinator = coordinator

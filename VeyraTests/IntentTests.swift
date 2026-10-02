@@ -23,6 +23,12 @@ struct IntentTests {
         ("go to bottom", .documentEnd),
         ("new line", .newLine),
         ("new paragraph", .newParagraph),
+        ("run it", .pressReturn),
+        ("Run that.", .pressReturn),
+        ("run this", .pressReturn),
+        ("press enter", .pressReturn),
+        ("press return", .pressReturn),
+        ("hit enter", .pressReturn),
     ])
     func matchesPhrase(phrase: String, expected: VoiceCommand) {
         #expect(Intent(phrase) == .command(expected))

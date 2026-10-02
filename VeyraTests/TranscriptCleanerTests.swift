@@ -13,6 +13,13 @@ struct TranscriptCleanerTests {
         ("Call me (maybe) later", "Call me (maybe) later"),
         ("(laughs) Okay, so (laughs)", "(laughs) Okay, so (laughs)"),
         ("*sighs* fine *laughs*", "*sighs* fine *laughs*"),
+        ("-", ""),
+        (" ...", ""),
+        ("?!", ""),
+        ("—", ""),
+        ("2", "2"),
+        ("Run it.", "Run it."),
+        ("नमस्ते", "नमस्ते"),
     ])
     func cleans(raw: String, expected: String) {
         #expect(TranscriptCleaner.clean(raw) == expected)

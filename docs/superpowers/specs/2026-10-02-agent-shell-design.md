@@ -42,7 +42,7 @@ With a terminal in front, hold **Fn + Control** and describe a command — "show
 | Unit | Location | Responsibility |
 |---|---|---|
 | `ShellCommand` | `Features/Agent/Shell/ShellCommand.swift` | `clean(_:) throws -> String`: trims, strips a ``` fence, surrounding backticks and a leading `$ ` or `% ` prompt. Empty → `invalidArguments`. Any newline, control character or more than 1,000 characters → `badCommand`. `ShellRisk.of(_:) -> ShellRisk?` returns the most serious match |
-| `ShellRisk` | same file | `disk`, `download`, `delete`, `admin`, `git`, `permissions`, `processes`, in that order of severity, each with a reason |
+| `ShellRisk` | same file | `disk`, `download`, `delete`, `git`, `permissions`, `processes`, `admin`, in that order, each with a reason. `admin` (`sudo`) is last so a more specific reason wins |
 | `ShellTool` | `Features/Agent/Shell/ShellTool.swift` | The `shell` tool. Refuses outside terminal mode, checks the frontmost app before and after, checks `isUntouched`, sends ⌃E ⌃U, pastes, returns the command as the insertion |
 
 ### Tool definition
@@ -57,10 +57,10 @@ With a terminal in front, hold **Fn + Control** and describe a command — "show
 | disk | `dd … of=`, `mkfs`, `diskutil erase…/zeroDisk/secureErase/partitionDisk/reformat` | "this can erase a disk" |
 | download | `curl`/`wget` piped into `sh`, `bash`, `zsh`, `fish`, `python`, `ruby`, `perl`; `sh <(curl …)` | "this runs downloaded code" |
 | delete | `rm` with `-r`, `-R`, `-f`, `--recursive` or `--force`; `find … -delete`; `shred`; `srm` | "this deletes files" |
-| admin | `sudo` | "this runs as administrator" |
 | git | `git push` with `--force`/`-f`; `git reset --hard`; `git clean -f`; `git branch -D` | "this can discard git work" |
 | permissions | `chmod`, `chown` or `chgrp` with `-R` | "this changes many permissions" |
 | processes | `kill -9`/`-KILL`; `killall`; `pkill` | "this stops processes" |
+| admin | `sudo` | "this runs as administrator" |
 
 ### Messages
 

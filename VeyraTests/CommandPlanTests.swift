@@ -100,6 +100,11 @@ struct CommandPlanTests {
         #expect(plan(.scratchThat, .terminal, app: ghostty, after: insertion) == .keys([.deleteBackward, .deleteBackward]))
     }
 
+    @Test func scratchClearsACommandThatOwnsTheLine() {
+        let insertion = LastInsertion(text: "curl -s https://x.io/?a=1&b=2", bundleIdentifier: ghostty, ownsLine: true)
+        #expect(plan(.scratchThat, .terminal, app: ghostty, after: insertion) == .keys([.shellLineEnd, .shellDeleteLine]))
+    }
+
     @Test func scratchWithoutInsertionIsUnavailable() {
         #expect(plan(.scratchThat, .standard) == .unavailable("Nothing to scratch"))
     }

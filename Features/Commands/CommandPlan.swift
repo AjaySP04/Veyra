@@ -15,6 +15,8 @@ struct CommandContext: Equatable {
 struct LastInsertion: Equatable {
     let text: String
     let bundleIdentifier: String?
+    /// A shell command written after ⌃U cleared the prompt, so the whole line is Veyra's. Shells may lengthen a paste (url-quote-magic), so it's removed with ⌃E ⌃U rather than counted ⌫.
+    var ownsLine = false
 
     var characterCount: Int { text.count }
 }
@@ -48,6 +50,7 @@ extension VoiceCommand {
             guard let lastInsertion, lastInsertion.bundleIdentifier == context.bundleIdentifier else {
                 return .unavailable("Nothing to scratch")
             }
+            if isTerminal, lastInsertion.ownsLine { return .keys([.shellLineEnd, .shellDeleteLine]) }
             return .keys(Array(repeating: .deleteBackward, count: lastInsertion.characterCount))
         case .deleteSelection: return .keys([.deleteBackward])
         case .deleteLastWord: return .keys([isTerminal ? .shellDeleteWord : .deleteWord])

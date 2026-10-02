@@ -31,7 +31,7 @@ struct ShellToolTests {
         #expect(!keystrokes.sentChords.joined().contains(.returnKey))
         #expect(action.done == "Command ready. Check it, then press Return")
         #expect(action.failure == "Couldn't write the command")
-        #expect(action.insertion == LastInsertion(text: "git status", bundleIdentifier: ghostty))
+        #expect(action.insertion == LastInsertion(text: "git status", bundleIdentifier: ghostty, ownsLine: true))
     }
 
     @Test func warnsAboutRiskyCommands() async throws {

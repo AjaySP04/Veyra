@@ -91,3 +91,9 @@ With a terminal in front, hold **Fn + Control** and describe a command — "show
 
 - Warp's input editor may ignore ⌃U, so the command is added to what's already there.
 - Relative paths are relative to wherever the shell is.
+
+## Review Amendments
+
+- A rewrite in a terminal gets the shell checks: wrapping is stripped, anything with a control character is refused, and a risky result says "Check carefully: <reason>".
+- A command Veyra wrote owns its prompt line (`LastInsertion.ownsLine`). "scratch that" and a rewrite remove it with ⌃E ⌃U instead of one ⌫ per character, because shells such as oh-my-zsh lengthen a pasted URL.
+- Risk patterns also cover `bash -c "$(curl …)"`, `curl … | /bin/bash`, `eval`/`source`/`.` of a download, and `rm` with a `*`.

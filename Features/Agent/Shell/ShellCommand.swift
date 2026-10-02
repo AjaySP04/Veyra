@@ -5,9 +5,20 @@ enum ShellCommand {
 
     /// The model's command as one line that's safe to paste: nothing in it can press Return or hide characters.
     static func clean(_ raw: String) throws -> String {
+        let text = unwrap(raw)
+        guard !text.isEmpty else { throw AgentError.invalidArguments }
+        let hidden = CharacterSet.controlCharacters.union(.newlines)
+        guard !text.unicodeScalars.contains(where: hidden.contains), text.count <= limit else {
+            throw AgentError.badCommand
+        }
+        return text
+    }
+
+    /// Strips the wrapping a model adds around a command: a ``` fence, backticks or a prompt sign.
+    static func unwrap(_ raw: String) -> String {
         var text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         if text.hasPrefix("```") {
-            var lines = text.split(separator: "\n", omittingEmptySubsequences: false)
+            var lines = text.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline)
             lines.removeFirst()
             if lines.last?.trimmingCharacters(in: .whitespaces) == "```" { lines.removeLast() }
             text = lines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
@@ -15,13 +26,7 @@ enum ShellCommand {
         if text.count >= 2, text.hasPrefix("`"), text.hasSuffix("`") {
             text = String(text.dropFirst().dropLast()).trimmingCharacters(in: .whitespacesAndNewlines)
         }
-        text = text.replacing(#/^[$%](\s+|$)/#, with: "")
-        guard !text.isEmpty else { throw AgentError.invalidArguments }
-        let hidden = CharacterSet.controlCharacters.union(.newlines)
-        guard !text.unicodeScalars.contains(where: hidden.contains), text.count <= limit else {
-            throw AgentError.badCommand
-        }
-        return text
+        return text.replacing(#/^[$%](\s+|$)/#, with: "")
     }
 }
 
@@ -50,9 +55,9 @@ enum ShellRisk: String, CaseIterable {
         case .disk:
             #/\bdd\b[^;&|]*\bof=|\bmkfs\b|\bdiskutil\s+(?:erase\w*|zeroDisk|secureErase|partitionDisk|reformat)\b/#
         case .download:
-            #/\b(?:curl|wget)\b[^;&]*\|\s*(?:sudo\s+)?(?:sh|bash|zsh|fish|python3?|ruby|perl)\b|\b(?:sh|bash|zsh)\s+<\(\s*(?:curl|wget)\b/#
+            #/\b(?:curl|wget)\b[^;&]*\|\s*(?:sudo\s+)?(?:\/\S*\/)?(?:sh|bash|zsh|fish|python3?|ruby|perl)\b|(?:\b(?:sh|bash|zsh|eval|source)\b|(?:^|[\s;&|])\.)[^;&|]*(?:\$\(|<\()\s*(?:curl|wget)\b/#
         case .delete:
-            #/\brm\b[^;&|]*\s(?:-[a-zA-Z]*[rRf][a-zA-Z]*|--recursive|--force)\b|\bfind\b[^;&|]*\s-delete\b|\b(?:shred|srm)\b/#
+            #/\brm\b[^;&|]*\s(?:-[a-zA-Z]*[rRf][a-zA-Z]*|--recursive|--force)\b|\bfind\b[^;&|]*\s-delete\b|\brm\b[^;&|]*\*|\b(?:shred|srm)\b/#
         case .admin:
             #/\bsudo\b/#
         case .git:

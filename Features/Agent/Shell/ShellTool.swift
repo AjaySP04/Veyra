@@ -35,7 +35,7 @@ struct ShellTool: Tool {
         return PreparedAction(
             done: risk.map { "Check carefully: \($0.reason)" } ?? "Command ready. Check it, then press Return",
             failure: "Couldn't write the command",
-            insertion: LastInsertion(text: command, bundleIdentifier: expectedApp)
+            insertion: LastInsertion(text: command, bundleIdentifier: expectedApp, ownsLine: true)
         ) { [keystrokes, inserter, frontmostApp] in
             guard frontmostApp() == expectedApp else { throw AgentError.appChanged }
             guard context.isUntouched() else { throw AgentError.interrupted }

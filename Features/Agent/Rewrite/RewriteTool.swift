@@ -51,23 +51,34 @@ struct RewriteTool: Tool {
         }
         let (source, original) = try await sourceText(in: context)
         guard original.count <= Self.limit else { throw AgentError.tooLong }
-        let rewritten = context.mode.finalize(try await rewriter.rewrite(original, instruction: instruction))
+        let isTerminal = context.mode == .terminal
+        let reply = try await rewriter.rewrite(original, instruction: instruction)
+        var rewritten = context.mode.finalize(isTerminal ? ShellCommand.unwrap(reply) : reply)
         guard !rewritten.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw AgentError.rewriteFailed }
+        // Anything pasted at a prompt is a command, so it gets the shell tool's checks and warning.
+        if isTerminal { rewritten = try ShellCommand.clean(rewritten) }
+        let risk = isTerminal ? ShellRisk.of(rewritten) : nil
         Logger.agent.info("Rewrite source \(source.rawValue, privacy: .public) \(original.count) → \(rewritten.count) characters")
 
-        let replacedCount = source == .lastInsertion ? original.count : 0
-        let removal: KeyChord = context.mode == .terminal ? .deleteBackward : .selectCharacterBackward
+        let ownsLine = isTerminal && source == .lastInsertion && context.lastInsertion?.ownsLine == true
+        let removal: [KeyChord] = switch (source, isTerminal) {
+        case (.lastInsertion, true) where ownsLine: [.shellLineEnd, .shellDeleteLine]
+        case (.lastInsertion, true): Array(repeating: .deleteBackward, count: original.count)
+        case (.lastInsertion, false): Array(repeating: .selectCharacterBackward, count: original.count)
+        default: []
+        }
         let expectedApp = context.bundleIdentifier
         return PreparedAction(
-            done: source == .lastInsertion ? "Rewrote your last dictation" : "Rewrote the selection",
+            done: risk.map { "Check carefully: \($0.reason)" }
+                ?? (source == .lastInsertion ? "Rewrote your last dictation" : "Rewrote the selection"),
             failure: "Couldn't replace the text",
-            insertion: LastInsertion(text: rewritten, bundleIdentifier: expectedApp)
+            insertion: LastInsertion(text: rewritten, bundleIdentifier: expectedApp, ownsLine: ownsLine)
         ) { [keystrokes, inserter, frontmostApp, settle] in
             guard frontmostApp() == expectedApp else { throw AgentError.appChanged }
             guard context.isUntouched() else { throw AgentError.interrupted }
-            if replacedCount > 0 {
-                keystrokes.send(Array(repeating: removal, count: replacedCount))
-                await settle(replacedCount)
+            if !removal.isEmpty {
+                keystrokes.send(removal)
+                await settle(removal.count)
             }
             try await inserter.insert(rewritten)
         }

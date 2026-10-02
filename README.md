@@ -15,7 +15,7 @@ Private, unlimited voice dictation for macOS — hold <b>Fn</b>, speak, release,
 - **Private by default** — Whisper runs on your Mac. No account, no usage limits, works offline.
 - **Clean text** — with [Ollama](https://ollama.com), filler words are removed, punctuation fixed, and spoken lists turned into bullet points by `gemma4` on your Mac. If you add `gemma4:cloud`, it is used whenever the local model is missing, too slow, or its reply is rejected.
 - **Voice commands** — say "undo that", "scratch that" or "new line" and Veyra presses the keys for you.
-- **Actions** — hold **Fn + Control** and say "open Slack", "open my resume" or "make this more formal".
+- **Actions** — hold **Fn + Control** and say "open Slack", "open my resume", "make this more formal" or, in a terminal, "find all PDFs in Downloads".
 - **Noise-aware** — Apple voice processing plus optional Voice Isolation for busy rooms.
 - **Clipboard-safe** — your previous clipboard is restored after every paste.
 
@@ -152,8 +152,11 @@ Hold **Control**, then hold **Fn** while you speak, and Veyra does what you ask 
 | "open my downloads", "open the desktop" | Opens Desktop, Documents, Downloads, Home, Pictures, Music or Movies |
 | "open my resume", "open the Veyra project folder" | Opens the best-matching file or folder in your home folder, most recently used first |
 | "make this more formal", "translate this to Hindi", "make it shorter", "fix the grammar" | Rewrites the selected text in place — or what you just dictated, if you haven't typed, clicked or switched apps since |
+| "git status", "find all PDFs in Downloads", "what's using port 3000" (in a terminal) | Writes the command at the prompt for you to check. It never presses Return |
 
 Rewrites replace the text straight away; ⌘Z or "undo that" brings the original back, and your clipboard is left as it was. If you type or click while a rewrite is in progress, it is cancelled. Text you can't edit, such as a web page, is left alone. In VS Code, JetBrains IDEs, Sublime Text and Cursor, asking with nothing selected copies the current line, so its rewrite is inserted at the cursor — ⌘Z removes it.
+
+Commands are written only in a terminal (Terminal, iTerm2, Ghostty, Warp, kitty, Alacritty, WezTerm, Hyper or Rio). Veyra clears the prompt line first (⌃Y brings back what was there in most shells), then writes one zsh command — never Return, and never anything with a line break in it. A command that deletes files, uses `sudo`, runs a downloaded script, force-pushes or erases a disk is still written, but the overlay says "Check carefully" and why. "scratch that" removes the command, and "make it recursive" changes it. The model doesn't know which folder your shell is in, so relative paths start wherever you are. Warp's own input editor may not clear the line, so the command is added to what's there.
 
 When several files match, Veyra opens the best one and tells you how many others matched. Actions need [Ollama](#6-transcript-cleanup-optional) with `gemma4`. The first file search may ask for access to your Documents, Desktop or Downloads folder.
 

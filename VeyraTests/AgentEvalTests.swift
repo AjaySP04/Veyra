@@ -11,6 +11,7 @@ struct AgentEvalTests {
         case folder(StandardFolder)
         case file(String)
         case rewrite(String)
+        case shell([String])
         case unsupported
     }
 
@@ -49,6 +50,14 @@ struct AgentEvalTests {
         ("fix the grammar", .rewrite("grammar")),
         ("make it shorter", .rewrite("short")),
         ("Make that sound friendlier.", .rewrite("friendl")),
+        ("git status", .shell(["git status"])),
+        ("show me all files including hidden ones", .shell(["ls", "-a"])),
+        ("how much disk space is free", .shell(["df"])),
+        ("find all pdf files in my downloads folder", .shell(["find", "pdf"])),
+        ("show the five biggest files in this folder", .shell(["5"])),
+        ("delete the node modules folder", .shell(["rm", "node_modules"])),
+        ("create a folder called reports", .shell(["mkdir", "reports"])),
+        ("what's using port 3000", .shell(["lsof", "3000"])),
     ]
 
     private let runner = AgentRunner(
@@ -59,6 +68,7 @@ struct AgentEvalTests {
                 selection: FakeSelectionReader(), copier: FakeCopier(), rewriter: FakeRewriter(),
                 inserter: FakeInserter(), keystrokes: FakeKeystrokes(), frontmostApp: { nil }
             ),
+            ShellTool(inserter: FakeInserter(), keystrokes: FakeKeystrokes(), frontmostApp: { nil }),
         ])
     )
 
@@ -110,6 +120,9 @@ struct AgentEvalTests {
         switch (reply, expect) {
         case (.text?, .unsupported):
             return true
+        case (.call(let call)?, .shell(let fragments)):
+            guard call.name == "shell", let command = try? ShellCommand.clean(call.arguments["command"] ?? "") else { return false }
+            return fragments.allSatisfy(command.contains)
         case (.call(let call)?, .rewrite(let fragment)):
             return call.name == "rewrite" && call.arguments["instruction"]?.lowercased().contains(fragment) == true
         case (.call(let call)?, _):
@@ -119,7 +132,7 @@ struct AgentEvalTests {
             case .website(let hosts): return kind == "website" && WebsiteResolver.url(for: target)?.host().map(hosts.contains) == true
             case .folder(let folder): return kind == "folder" && FolderResolver.folder(for: target) == folder
             case .file(let word): return ["file", "folder"].contains(kind) && FileSearcher.words(in: target).contains(word)
-            case .rewrite, .unsupported: return false
+            case .rewrite, .shell, .unsupported: return false
             }
         default:
             return false

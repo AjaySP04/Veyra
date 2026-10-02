@@ -4,6 +4,7 @@ import Foundation
 final class AppDependencies {
     let coordinator: DictationCoordinator
     let permissions: PermissionService
+    let iconAnimator = MenuBarIconAnimator()
     private let overlay: RecordingOverlayController
 
     init() {
@@ -46,6 +47,11 @@ final class AppDependencies {
 
     private func launch() async {
         overlay.start()
+        Task { [coordinator, iconAnimator] in
+            for await icon in Observations({ coordinator.state.menuBarIcon }) {
+                iconAnimator.update(swinging: icon == .mark(swinging: true))
+            }
+        }
         Task { [permissions] in await permissions.requestInitialAccess() }
         Task { [permissions, coordinator] in await permissions.monitor { coordinator.reconnectHotkey() } }
         await coordinator.start()

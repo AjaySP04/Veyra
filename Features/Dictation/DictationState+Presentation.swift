@@ -1,12 +1,9 @@
 extension DictationState {
-    var menuBarSymbol: String {
+    var menuBarIcon: MenuBarIcon {
         switch self {
-        case .preparing, .idle: "mic"
-        case .recording: "mic.fill"
-        case .transcribing: "waveform"
-        case .acting: "bolt"
-        case .acted: "checkmark"
-        case .failed, .unavailable: "exclamationmark.triangle"
+        case .preparing, .idle, .recording, .acted: .mark(swinging: false)
+        case .transcribing, .acting: .mark(swinging: true)
+        case .failed, .unavailable: .symbol("exclamationmark.triangle")
         }
     }
 

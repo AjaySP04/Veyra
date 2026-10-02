@@ -66,6 +66,8 @@ extension VoiceCommand {
         case .documentEnd: return .keys([.documentEnd])
         case .newLine: return .keys([.softReturn])
         case .newParagraph: return .keys([.softReturn, .softReturn])
+        // Return sends messages and submits forms elsewhere, which needs confirmation (8.4).
+        case .pressReturn: return isTerminal ? .keys([.returnKey]) : .unavailable("\(title) only works in Terminal")
         }
     }
 }

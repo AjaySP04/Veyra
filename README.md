@@ -130,6 +130,7 @@ Hold **Fn** and say one of these phrases on its own. Capitals, punctuation and a
 | "go to start of line" / "go to end of line" | Moves the cursor along the line |
 | "go to top" / "go to bottom" | Moves to the start or end of the document |
 | "new line" / "new paragraph" | Adds a line break or a blank line |
+| "run it" / "press enter" | Presses Return — in a terminal only, so a command Veyra wrote runs once you've checked it |
 
 Some commands adapt to the app:
 
@@ -156,7 +157,7 @@ Hold **Control**, then hold **Fn** while you speak, and Veyra does what you ask 
 
 Rewrites replace the text straight away; ⌘Z or "undo that" brings the original back, and your clipboard is left as it was. If you type or click while a rewrite is in progress, it is cancelled. Text you can't edit, such as a web page, is left alone. In VS Code, JetBrains IDEs, Sublime Text and Cursor, asking with nothing selected copies the current line, so its rewrite is inserted at the cursor — ⌘Z removes it.
 
-Commands are written only in a terminal (Terminal, iTerm2, Ghostty, Warp, kitty, Alacritty, WezTerm, Hyper or Rio). Veyra clears the prompt line first (⌃Y brings back what was there in most shells), then writes one zsh command — never Return, and never anything with a line break in it. A command that deletes files, uses `sudo`, runs a downloaded script, force-pushes or erases a disk is still written, but the overlay says "Check carefully" and why. "scratch that" removes the command, and "make it recursive" changes it. The model doesn't know which folder your shell is in, so relative paths start wherever you are. Warp's own input editor may not clear the line, so the command is added to what's there.
+Commands are written only in a terminal (Terminal, iTerm2, Ghostty, Warp, kitty, Alacritty, WezTerm, Hyper or Rio). Veyra clears the prompt line first (⌃Y brings back what was there in most shells), then writes one zsh command — never Return, and never anything with a line break in it. When it looks right, press Return or say "run it" (plain Fn). A command that deletes files, uses `sudo`, runs a downloaded script, force-pushes or erases a disk is still written, but the overlay says "Check carefully" and why. "scratch that" removes the command, and "make it recursive" changes it. The model doesn't know which folder your shell is in, so relative paths start wherever you are. Warp's own input editor may not clear the line, so the command is added to what's there.
 
 When several files match, Veyra opens the best one and tells you how many others matched. Actions need [Ollama](#6-transcript-cleanup-optional) with `gemma4`. The first file search may ask for access to your Documents, Desktop or Downloads folder.
 

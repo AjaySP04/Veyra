@@ -68,8 +68,8 @@ struct CommandPlanTests {
         #expect(plan(command, .terminal, app: ghostty) == .unavailable("\(command.title) isn't available in Terminal"))
     }
 
-    @Test func terminalNeverSendsReturn() {
-        for command in VoiceCommand.allCases {
+    @Test func onlyRunItSendsReturnInTerminal() {
+        for command in VoiceCommand.allCases where command != .pressReturn {
             guard case .keys(let chords) = plan(command, .terminal, app: ghostty) else { continue }
             #expect(!chords.contains { $0.key == KeyChord.returnKey.key })
         }
@@ -88,6 +88,15 @@ struct CommandPlanTests {
             #expect(plan(command, .editor, app: app) == .unavailable("Formatting isn't available in this app"))
         }
         #expect(plan(.undo, .editor, app: app) == .keys([.undo]))
+    }
+
+    @Test func runItPressesReturnInTerminal() {
+        #expect(plan(.pressReturn, .terminal, app: ghostty) == .keys([.returnKey]))
+    }
+
+    @Test(arguments: [DictationMode.standard, .editor, .chat, .email])
+    func runItOnlyWorksInTerminal(mode: DictationMode) {
+        #expect(plan(.pressReturn, mode) == .unavailable("Run it only works in Terminal"))
     }
 
     @Test func scratchDeletesEachInsertedCharacter() {

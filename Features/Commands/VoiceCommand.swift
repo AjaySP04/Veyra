@@ -7,6 +7,7 @@ enum VoiceCommand: String, CaseIterable {
     case selectAll, selectLastWord
     case lineStart, lineEnd, documentStart, documentEnd
     case newLine, newParagraph
+    case pressReturn
 
     private static let commandsByPhrase = Dictionary(
         uniqueKeysWithValues: allCases.flatMap { command in command.phrases.map { ($0, command) } }
@@ -36,6 +37,7 @@ enum VoiceCommand: String, CaseIterable {
         case .documentEnd: ["go to bottom"]
         case .newLine: ["new line"]
         case .newParagraph: ["new paragraph"]
+        case .pressReturn: ["run it", "run that", "run this", "press enter", "press return", "hit enter"]
         }
     }
 

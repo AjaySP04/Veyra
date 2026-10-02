@@ -474,6 +474,37 @@ struct DictationCoordinatorTests {
         #expect(agent.contexts.map(\.lastInsertion) == [nil])
     }
 
+    @Test func failedActionKeepsTheLastDictation() async {
+        agent.outcome = .failed("I can open things, rewrite text and write commands for now")
+        let coordinator = await readyCoordinator(failureDisplayDuration: .zero)
+        await dictate(coordinator)
+        await act("do something odd", on: coordinator)
+        await coordinator.recovery?.value
+        await act("make that shorter", on: coordinator)
+        #expect(agent.contexts.map(\.lastInsertion?.text) == ["hello world", "hello world"])
+    }
+
+    @Test func failedActionAfterTypingDropsTheLastDictation() async {
+        agent.outcome = .failed("Select some text first")
+        agent.onRun = { [hotkey] in hotkey.send(.userInput) }
+        let coordinator = await readyCoordinator(failureDisplayDuration: .zero)
+        await dictate(coordinator)
+        await act("make that shorter", on: coordinator)
+        await coordinator.recovery?.value
+        await say("scratch that", to: coordinator)
+        #expect(keystrokes.sentChords.isEmpty)
+    }
+
+    @Test func runningACommandEndsScratchThat() async {
+        context.context = AppContext(bundleIdentifier: "com.mitchellh.ghostty", windowTitle: nil)
+        let coordinator = await readyCoordinator(failureDisplayDuration: .zero)
+        await dictate(coordinator)
+        await say("run it", to: coordinator)
+        await coordinator.recovery?.value
+        await say("scratch that", to: coordinator)
+        #expect(keystrokes.sentChords == [[.returnKey]])
+    }
+
     @Test func actionInsertionCanBeScratched() async {
         agent.outcome = .done("Rewrote your last dictation", insertion: LastInsertion(text: "Hi.", bundleIdentifier: nil))
         let coordinator = await readyCoordinator(failureDisplayDuration: .zero)

@@ -9,6 +9,7 @@ final class DictationCoordinator {
     private static let silenceLevel: Float = 0.1
 
     private(set) var state: DictationState = .preparing(progress: nil)
+    private(set) var gesture: Gesture = .dictate
     @ObservationIgnored private(set) var transcription: Task<Void, Never>?
     @ObservationIgnored private(set) var recovery: Task<Void, Never>?
     @ObservationIgnored private var context = CommandContext(mode: .standard, bundleIdentifier: nil)
@@ -23,6 +24,7 @@ final class DictationCoordinator {
     private let hotkey: HotkeyMonitoring
     private let permissions: PermissionChecking
     private let contextProvider: AppContextProviding
+    private let agent: AgentRunning
     private let isSecureInputEnabled: () -> Bool
     private let failureDisplayDuration: Duration
 
@@ -35,6 +37,7 @@ final class DictationCoordinator {
         hotkey: HotkeyMonitoring,
         permissions: PermissionChecking,
         contextProvider: AppContextProviding,
+        agent: AgentRunning,
         isSecureInputEnabled: @escaping () -> Bool = { IsSecureEventInputEnabled() },
         failureDisplayDuration: Duration = .seconds(2)
     ) {
@@ -46,6 +49,7 @@ final class DictationCoordinator {
         self.hotkey = hotkey
         self.permissions = permissions
         self.contextProvider = contextProvider
+        self.agent = agent
         self.isSecureInputEnabled = isSecureInputEnabled
         self.failureDisplayDuration = failureDisplayDuration
     }
@@ -73,9 +77,13 @@ final class DictationCoordinator {
 
     func handle(_ event: HotkeyEvent) {
         switch (event, state) {
-        case (.pressed, .idle): beginRecording()
+        case (.pressed(let gesture), .idle), (.pressed(let gesture), .acted), (.pressed(let gesture), .failed):
+            beginRecording(gesture)
         case (.released, .recording): finishRecording()
         case (.cancelled, .recording): cancelRecording()
+        case (.cancelled, _):
+            userInputCount += 1
+            lastInsertion = nil
         case (.userInput, _):
             userInputCount += 1
             lastInsertion = nil
@@ -83,15 +91,16 @@ final class DictationCoordinator {
         }
     }
 
-    private func beginRecording() {
+    private func beginRecording(_ gesture: Gesture) {
         if let missing = Permission.allCases.first(where: { !permissions.isGranted($0) }) {
             return fail("\(missing.title) access is required")
         }
         do {
             try audio.start()
             state = .recording(level: 0)
+            self.gesture = gesture
             context = CommandContext(contextProvider.current())
-            Logger.dictation.info("Mode \(self.context.mode.rawValue, privacy: .public)")
+            Logger.dictation.info("Mode \(self.context.mode.rawValue, privacy: .public), gesture \(gesture == .act ? "act" : "dictate", privacy: .public)")
         } catch {
             fail(error.localizedDescription)
         }
@@ -106,7 +115,12 @@ final class DictationCoordinator {
             return
         }
         state = .transcribing
-        transcription = Task { [context = self.context] in await transcribeAndRoute(samples, in: context) }
+        transcription = Task { [context = self.context, gesture = self.gesture] in
+            switch gesture {
+            case .dictate: await transcribeAndRoute(samples, in: context)
+            case .act: await transcribeAndAct(samples, in: context)
+            }
+        }
     }
 
     private func cancelRecording() {
@@ -128,13 +142,44 @@ final class DictationCoordinator {
                 try await inserter.insert(processed)
                 let isUntouched = userInputCount == inputCountBeforeInsert && !isSecureInputEnabled()
                 lastInsertion = isUntouched
-                    ? LastInsertion(characterCount: processed.count, bundleIdentifier: context.bundleIdentifier)
+                    ? LastInsertion(text: processed, bundleIdentifier: context.bundleIdentifier)
                     : nil
             case .dictate:
                 break
             }
             state = .idle
         } catch {
+            fail(error.localizedDescription)
+        }
+    }
+
+    private func transcribeAndAct(_ samples: [Float], in context: CommandContext) async {
+        do {
+            let transcript = try await transcriber.transcribe(samples)
+            guard !transcript.isEmpty else {
+                state = .idle
+                return
+            }
+            state = .acting
+            let insertion = isSecureInputEnabled() || lastInsertion?.bundleIdentifier != context.bundleIdentifier ? nil : lastInsertion
+            lastInsertion = nil
+            let inputCountBeforeAction = userInputCount
+            let toolContext = ToolContext(
+                mode: context.mode, bundleIdentifier: context.bundleIdentifier, lastInsertion: insertion,
+                isUntouched: { [weak self] in
+                    guard let self else { return false }
+                    return userInputCount == inputCountBeforeAction && !isSecureInputEnabled()
+                }
+            )
+            switch await agent.run(transcript, in: toolContext) {
+            case .done(let message, let newInsertion):
+                lastInsertion = userInputCount == inputCountBeforeAction ? newInsertion : nil
+                showBriefly(.acted(message: message))
+            case .failed(let message):
+                showBriefly(.failed(message: message))
+            }
+        } catch {
+            lastInsertion = nil
             fail(error.localizedDescription)
         }
     }
@@ -158,10 +203,14 @@ final class DictationCoordinator {
 
     private func fail(_ message: String) {
         Logger.dictation.error("\(message, privacy: .public)")
-        state = .failed(message: message)
+        showBriefly(.failed(message: message))
+    }
+
+    private func showBriefly(_ shown: DictationState) {
+        state = shown
         recovery = Task { [failureDisplayDuration] in
             try? await Task.sleep(for: failureDisplayDuration)
-            if state == .failed(message: message) { state = .idle }
+            if state == shown { state = .idle }
         }
     }
 

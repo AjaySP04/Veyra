@@ -8,6 +8,8 @@ final class FakePasteboard: Pasteboard {
     private(set) var changeCount = 0
     var items: [[String: Data]] = []
 
+    func readText() -> String? { string }
+
     var string: String? {
         items.first?[Self.textType].flatMap { String(data: $0, encoding: .utf8) }
     }
@@ -31,6 +33,7 @@ final class FakePasteboard: Pasteboard {
 final class FakeKeystrokes: KeystrokeSending {
     private let pasteboard: FakePasteboard
     var sideEffect: () -> Void = {}
+    var onSend: ([KeyChord]) -> Void = { _ in }
     private(set) var pastedTexts: [String?] = []
     private(set) var sentChords: [[KeyChord]] = []
 
@@ -44,6 +47,7 @@ final class FakeKeystrokes: KeystrokeSending {
 
     func send(_ chords: [KeyChord]) {
         sentChords.append(chords)
+        onSend(chords)
         guard chords == [.paste] else { return }
         pastedTexts.append(pasteboard.string)
         sideEffect()
@@ -174,4 +178,121 @@ struct AppendingProcessor: TextProcessing {
 @MainActor
 final class FakeSecureInput {
     var isEnabled = false
+}
+
+@MainActor
+final class FakeToolCaller: ToolCalling {
+    var replies: [String: Result<ToolReply, Error>] = [:]
+    private(set) var requests: [ToolRequest] = []
+
+    func callTool(_ request: ToolRequest) async throws -> ToolReply {
+        requests.append(request)
+        guard let reply = replies[request.model] else { throw TestError() }
+        return try reply.get()
+    }
+}
+
+@MainActor
+final class FakeTool: Tool {
+    let definition = ToolDefinition(name: "open", description: "Open", parameters: [])
+    let risk = ToolRisk.immediate
+    var prepareError: Error?
+    var performError: Error?
+    var insertion: LastInsertion?
+    private(set) var preparedArguments: [[String: String]] = []
+    private(set) var contexts: [ToolContext] = []
+    private(set) var performCount = 0
+
+    func prepare(_ arguments: [String: String], in context: ToolContext) async throws -> PreparedAction {
+        preparedArguments.append(arguments)
+        contexts.append(context)
+        if let prepareError { throw prepareError }
+        return PreparedAction(done: "Opened Slack", failure: "Couldn't open Slack", insertion: insertion) { [self] in
+            performCount += 1
+            if let performError { throw performError }
+        }
+    }
+}
+
+struct FakeAppListing: AppListing {
+    var apps: [InstalledApp] = []
+    func installedApps() -> [InstalledApp] { apps }
+}
+
+@MainActor
+final class FakeFileSearching: FileSearching {
+    var results: [FileResult] = []
+    private(set) var searches: [(words: [String], foldersOnly: Bool)] = []
+
+    func search(_ words: [String], foldersOnly: Bool) async -> [FileResult] {
+        searches.append((words, foldersOnly))
+        return results
+    }
+}
+
+@MainActor
+final class FakeWorkspace: WorkspaceOpening {
+    var error: Error?
+    private(set) var opened: [URL] = []
+    private(set) var launched: [URL] = []
+
+    func open(_ url: URL) async throws {
+        if let error { throw error }
+        opened.append(url)
+    }
+
+    func openApplication(at url: URL) async throws {
+        if let error { throw error }
+        launched.append(url)
+    }
+}
+
+@MainActor
+final class FakeAgent: AgentRunning {
+    var outcome = AgentOutcome.done("Opened Slack")
+    var onRun: () -> Void = {}
+    private(set) var transcripts: [String] = []
+    private(set) var contexts: [ToolContext] = []
+
+    func run(_ transcript: String, in context: ToolContext) async -> AgentOutcome {
+        transcripts.append(transcript)
+        contexts.append(context)
+        onRun()
+        return outcome
+    }
+}
+
+struct FakeSelectionReader: SelectionReading {
+    var read = SelectionRead.unknown
+    var editable: Bool? = true
+    func selectedText() -> SelectionRead { read }
+    func isFocusedElementEditable() -> Bool? { editable }
+}
+
+@MainActor
+final class SettleRecorder {
+    private(set) var counts: [Int] = []
+    func settle(_ count: Int) async { counts.append(count) }
+}
+
+@MainActor
+final class FakeCopier: SelectionCopying {
+    var copied: String?
+    private(set) var copyCount = 0
+
+    func copySelection() async -> String? {
+        copyCount += 1
+        return copied
+    }
+}
+
+@MainActor
+final class FakeRewriter: TextRewriting {
+    var result: Result<String, Error> = .success("Rewritten.")
+    private(set) var calls: [(text: String, instruction: String)] = []
+
+    func rewrite(_ text: String, instruction: String) async throws -> String {
+        calls.append((text, instruction))
+        return try result.get()
+    }
 }

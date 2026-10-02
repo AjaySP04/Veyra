@@ -91,12 +91,12 @@ struct CommandPlanTests {
     }
 
     @Test func scratchDeletesEachInsertedCharacter() {
-        let insertion = LastInsertion(characterCount: 3, bundleIdentifier: notes)
+        let insertion = LastInsertion(text: String(repeating: "a", count: 3), bundleIdentifier: notes)
         #expect(plan(.scratchThat, .editor, app: notes, after: insertion) == .keys(Array(repeating: .deleteBackward, count: 3)))
     }
 
     @Test func scratchWorksInTerminal() {
-        let insertion = LastInsertion(characterCount: 2, bundleIdentifier: ghostty)
+        let insertion = LastInsertion(text: String(repeating: "a", count: 2), bundleIdentifier: ghostty)
         #expect(plan(.scratchThat, .terminal, app: ghostty, after: insertion) == .keys([.deleteBackward, .deleteBackward]))
     }
 
@@ -105,7 +105,7 @@ struct CommandPlanTests {
     }
 
     @Test func scratchInAnotherAppIsUnavailable() {
-        let insertion = LastInsertion(characterCount: 3, bundleIdentifier: notes)
+        let insertion = LastInsertion(text: String(repeating: "a", count: 3), bundleIdentifier: notes)
         #expect(plan(.scratchThat, .chat, app: slack, after: insertion) == .unavailable("Nothing to scratch"))
     }
 

@@ -3,7 +3,7 @@ import Observation
 import SwiftUI
 
 final class RecordingOverlayController {
-    private static let size = NSSize(width: 280, height: 56)
+    private static let size = NSSize(width: 320, height: 56)
     private static let bottomMargin: CGFloat = 32
 
     private let coordinator: DictationCoordinator
@@ -62,12 +62,22 @@ private struct RecordingPill: View {
 
     @ViewBuilder private var content: some View {
         switch coordinator.state {
+        case .recording(let level) where coordinator.gesture == .act:
+            Image(systemName: "bolt.fill").foregroundStyle(.yellow)
+            Text("Listening for an action…").lineLimit(1)
+            LevelMeter(level: level)
         case .recording(let level):
             Image(systemName: "mic.fill").foregroundStyle(.red)
             LevelMeter(level: level)
         case .transcribing:
             ProgressView().controlSize(.small)
             Text("Transcribing")
+        case .acting:
+            ProgressView().controlSize(.small)
+            Text("Working…")
+        case .acted(let message):
+            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+            Text(message).lineLimit(1)
         case .failed(let message):
             Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.yellow)
             Text(message).lineLimit(1)

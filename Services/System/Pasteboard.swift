@@ -9,6 +9,7 @@ protocol Pasteboard: AnyObject {
     func snapshot() -> PasteboardSnapshot
     func restore(_ snapshot: PasteboardSnapshot)
     func write(_ text: String)
+    func readText() -> String?
 }
 
 extension NSPasteboard: Pasteboard {
@@ -29,6 +30,10 @@ extension NSPasteboard: Pasteboard {
             contents.forEach { type, data in item.setData(data, forType: PasteboardType(type)) }
             return item
         })
+    }
+
+    func readText() -> String? {
+        string(forType: .string)
     }
 
     func write(_ text: String) {

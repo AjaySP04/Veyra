@@ -21,4 +21,4 @@ rm -rf /Applications/Veyra.app
 cp -R "$build_dir/Build/Products/Release/Veyra.app" /Applications/
 
 open /Applications/Veyra.app
-echo "Veyra is installed and running. Look for the microphone icon in the menu bar."
+echo "Veyra is installed and running. Look for the V in the menu bar."

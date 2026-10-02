@@ -21,6 +21,8 @@ struct KeyChord: Equatable {
     }
 
     static let paste = KeyChord("v", .maskCommand)
+    static let copy = KeyChord("c", .maskCommand)
+    static let selectCharacterBackward = KeyChord(kVK_LeftArrow, .maskShift)
     static let undo = KeyChord("z", .maskCommand)
     static let redo = KeyChord("z", [.maskCommand, .maskShift])
     static let deleteBackward = KeyChord(kVK_Delete)

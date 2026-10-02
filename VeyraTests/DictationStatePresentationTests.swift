@@ -9,6 +9,8 @@ struct DictationStatePresentationTests {
         (.preparing(progress: 1), "Loading speech model…"),
         (.idle, "Hold Fn to dictate"),
         (.unavailable(message: "Offline"), "Offline"),
+        (.acting, "Working…"),
+        (.acted(message: "Opened Slack"), "Opened Slack"),
     ])
     func statusText(state: DictationState, expected: String) {
         #expect(state.statusText == expected)
@@ -21,6 +23,8 @@ struct DictationStatePresentationTests {
         (.idle, false),
         (.preparing(progress: nil), false),
         (.unavailable(message: "x"), false),
+        (.acting, true),
+        (.acted(message: "x"), true),
     ])
     func overlayVisibility(state: DictationState, expected: Bool) {
         #expect(state.showsOverlay == expected)

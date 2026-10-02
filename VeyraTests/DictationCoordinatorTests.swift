@@ -11,6 +11,7 @@ struct DictationCoordinatorTests {
     private let permissions = FakePermissions()
     private let context = FakeAppContextProvider()
     private let secureInput = FakeSecureInput()
+    private let agent = FakeAgent()
 
     private func readyCoordinator(
         processor: TextProcessing = PassthroughTextProcessor(),
@@ -25,6 +26,7 @@ struct DictationCoordinatorTests {
             hotkey: hotkey,
             permissions: permissions,
             contextProvider: context,
+            agent: agent,
             isSecureInputEnabled: { [secureInput] in secureInput.isEnabled },
             failureDisplayDuration: failureDisplayDuration
         )
@@ -33,7 +35,7 @@ struct DictationCoordinatorTests {
     }
 
     private func dictate(_ coordinator: DictationCoordinator) async {
-        hotkey.send(.pressed, .released)
+        hotkey.send(.pressed(.dictate), .released)
         await coordinator.transcription?.value
     }
 
@@ -51,7 +53,7 @@ struct DictationCoordinatorTests {
     @Test func modelFailureMakesDictationUnavailable() async {
         transcriber.prepareError = TestError()
         let coordinator = await readyCoordinator()
-        hotkey.send(.pressed)
+        hotkey.send(.pressed(.dictate))
         #expect(coordinator.state == .unavailable(message: "boom"))
         #expect(!audio.isRecording)
     }
@@ -72,7 +74,7 @@ struct DictationCoordinatorTests {
 
     @Test func pressStartsRecordingAndReportsLevel() async {
         let coordinator = await readyCoordinator()
-        hotkey.send(.pressed)
+        hotkey.send(.pressed(.dictate))
         audio.levelHandler?(0.7)
         #expect(audio.isRecording)
         #expect(coordinator.state == .recording(level: 0.7))
@@ -130,7 +132,7 @@ struct DictationCoordinatorTests {
 
     @Test func pressWhileTranscribingIsIgnored() async {
         let coordinator = await readyCoordinator()
-        hotkey.send(.pressed, .released, .pressed)
+        hotkey.send(.pressed(.dictate), .released, .pressed(.dictate))
         #expect(coordinator.state == .transcribing)
         #expect(!audio.isRecording)
         await coordinator.transcription?.value
@@ -140,7 +142,7 @@ struct DictationCoordinatorTests {
 
     @Test func cancelDiscardsRecording() async {
         let coordinator = await readyCoordinator()
-        hotkey.send(.pressed, .cancelled)
+        hotkey.send(.pressed(.dictate), .cancelled)
         #expect(!audio.isRecording)
         #expect(coordinator.state == .idle)
         #expect(transcriber.receivedSamples == nil)
@@ -149,7 +151,7 @@ struct DictationCoordinatorTests {
     @Test func missingPermissionBlocksRecording() async {
         permissions.denied = [.accessibility]
         let coordinator = await readyCoordinator()
-        hotkey.send(.pressed)
+        hotkey.send(.pressed(.dictate))
         #expect(!audio.isRecording)
         #expect(coordinator.state == .failed(message: "Accessibility access is required"))
     }
@@ -157,7 +159,7 @@ struct DictationCoordinatorTests {
     @Test func audioStartErrorShowsFailure() async {
         audio.startError = TestError()
         let coordinator = await readyCoordinator()
-        hotkey.send(.pressed)
+        hotkey.send(.pressed(.dictate))
         #expect(coordinator.state == .failed(message: "boom"))
     }
 
@@ -195,7 +197,7 @@ struct DictationCoordinatorTests {
         let processor = RecordingProcessor()
         context.context = AppContext(bundleIdentifier: "com.mitchellh.ghostty", windowTitle: nil)
         let coordinator = await readyCoordinator(processor: processor)
-        hotkey.send(.pressed)
+        hotkey.send(.pressed(.dictate))
         context.context = AppContext(bundleIdentifier: "com.apple.mail", windowTitle: nil)
         hotkey.send(.released)
         await coordinator.transcription?.value
@@ -216,7 +218,7 @@ struct DictationCoordinatorTests {
         var recordingWhenRead: Bool?
         context.onRead = { [audio] in recordingWhenRead = audio.isRecording }
         let coordinator = await readyCoordinator()
-        hotkey.send(.pressed)
+        hotkey.send(.pressed(.dictate))
         #expect(recordingWhenRead == true)
         #expect(coordinator.state == .recording(level: 0))
     }
@@ -288,7 +290,7 @@ struct DictationCoordinatorTests {
 
     @Test func typingDuringTranscriptionKeepsTheNewInsertion() async {
         let coordinator = await readyCoordinator()
-        hotkey.send(.pressed, .released, .userInput)
+        hotkey.send(.pressed(.dictate), .released, .userInput)
         await coordinator.transcription?.value
         await say("scratch that", to: coordinator)
         #expect(keystrokes.sentChords == [Array(repeating: .deleteBackward, count: "hello world".count)])
@@ -314,7 +316,7 @@ struct DictationCoordinatorTests {
     @Test func cancelledRecordingPreventsScratch() async {
         let coordinator = await readyCoordinator()
         await dictate(coordinator)
-        hotkey.send(.pressed, .cancelled)
+        hotkey.send(.pressed(.dictate), .cancelled)
         await say("scratch that", to: coordinator)
         #expect(keystrokes.sentChords.isEmpty)
     }
@@ -350,10 +352,168 @@ struct DictationCoordinatorTests {
         context.context = AppContext(bundleIdentifier: "com.apple.Notes", windowTitle: nil)
         let coordinator = await readyCoordinator()
         transcriber.transcript = "new line"
-        hotkey.send(.pressed, .released)
+        hotkey.send(.pressed(.dictate), .released)
         context.context = AppContext(bundleIdentifier: "com.mitchellh.ghostty", windowTitle: nil)
         await coordinator.transcription?.value
         #expect(keystrokes.sentChords.isEmpty)
         #expect(coordinator.state == .failed(message: "Command cancelled because the app changed"))
+    }
+    private func act(_ transcript: String, on coordinator: DictationCoordinator) async {
+        transcriber.transcript = transcript
+        hotkey.send(.pressed(.act), .released)
+        await coordinator.transcription?.value
+    }
+
+    @Test func actionGoesToTheAgentOnly() async {
+        let processor = RecordingProcessor()
+        let coordinator = await readyCoordinator(processor: processor)
+        await act("Open Slack.", on: coordinator)
+        #expect(agent.transcripts == ["Open Slack."])
+        #expect(processor.modes.isEmpty)
+        #expect(inserter.inserted.isEmpty)
+        #expect(keystrokes.sentChords.isEmpty)
+        #expect(coordinator.state == .acted(message: "Opened Slack"))
+    }
+
+    @Test func commandPhraseInActionModeStillGoesToTheAgent() async {
+        let coordinator = await readyCoordinator()
+        await act("undo that", on: coordinator)
+        #expect(agent.transcripts == ["undo that"])
+        #expect(keystrokes.sentChords.isEmpty)
+    }
+
+    @Test func actionFailureIsShown() async {
+        agent.outcome = .failed("No app called “Foo”")
+        let coordinator = await readyCoordinator()
+        await act("open foo", on: coordinator)
+        #expect(coordinator.state == .failed(message: "No app called “Foo”"))
+    }
+
+    @Test func actionResultReturnsToIdle() async {
+        let coordinator = await readyCoordinator(failureDisplayDuration: .zero)
+        await act("Open Slack.", on: coordinator)
+        await coordinator.recovery?.value
+        #expect(coordinator.state == .idle)
+    }
+
+    @Test func emptyActionTranscriptDoesNothing() async {
+        let coordinator = await readyCoordinator()
+        await act("", on: coordinator)
+        #expect(agent.transcripts.isEmpty)
+        #expect(coordinator.state == .idle)
+    }
+
+    @Test func actionGestureIsVisibleWhileRecording() async {
+        let coordinator = await readyCoordinator(failureDisplayDuration: .zero)
+        hotkey.send(.pressed(.act))
+        #expect(coordinator.gesture == .act)
+        hotkey.send(.released)
+        await coordinator.transcription?.value
+        await coordinator.recovery?.value
+        hotkey.send(.pressed(.dictate))
+        #expect(coordinator.gesture == .dictate)
+    }
+
+    @Test func actionClearsScratchThat() async {
+        let coordinator = await readyCoordinator(failureDisplayDuration: .zero)
+        await dictate(coordinator)
+        await act("Open Slack.", on: coordinator)
+        await coordinator.recovery?.value
+        await say("scratch that", to: coordinator)
+        #expect(keystrokes.sentChords.isEmpty)
+    }
+
+    @Test func dictationIsUnchangedAfterAnAction() async {
+        let coordinator = await readyCoordinator(failureDisplayDuration: .zero)
+        await act("Open Slack.", on: coordinator)
+        await coordinator.recovery?.value
+        await say("hello world", to: coordinator)
+        #expect(inserter.inserted == ["hello world"])
+        #expect(agent.transcripts == ["Open Slack."])
+    }
+
+    @Test func fnWorksWhileAnActionResultIsShowing() async {
+        let coordinator = await readyCoordinator()
+        await act("Open Slack.", on: coordinator)
+        #expect(coordinator.state == .acted(message: "Opened Slack"))
+        hotkey.send(.pressed(.dictate))
+        #expect(coordinator.state == .recording(level: 0))
+        #expect(coordinator.gesture == .dictate)
+    }
+
+    @Test func fnWorksWhileAFailureIsShowing() async {
+        agent.outcome = .failed("No app called “Foo”")
+        let coordinator = await readyCoordinator()
+        await act("open foo", on: coordinator)
+        hotkey.send(.pressed(.act))
+        #expect(coordinator.state == .recording(level: 0))
+    }
+
+    @Test func actionReceivesTheValidLastInsertion() async {
+        context.context = AppContext(bundleIdentifier: "com.apple.Notes", windowTitle: nil)
+        let coordinator = await readyCoordinator(failureDisplayDuration: .zero)
+        await dictate(coordinator)
+        await act("make that shorter", on: coordinator)
+        #expect(agent.contexts.map(\.lastInsertion) == [LastInsertion(text: "hello world", bundleIdentifier: "com.apple.Notes")])
+        #expect(agent.contexts.map(\.mode) == [.editor])
+    }
+
+    @Test func actionDoesNotReceiveAnInsertionAfterTyping() async {
+        let coordinator = await readyCoordinator(failureDisplayDuration: .zero)
+        await dictate(coordinator)
+        hotkey.send(.userInput)
+        await act("make that shorter", on: coordinator)
+        #expect(agent.contexts.map(\.lastInsertion) == [nil])
+    }
+
+    @Test func actionDoesNotReceiveAnInsertionUnderSecureInput() async {
+        let coordinator = await readyCoordinator(failureDisplayDuration: .zero)
+        await dictate(coordinator)
+        secureInput.isEnabled = true
+        await act("make that shorter", on: coordinator)
+        #expect(agent.contexts.map(\.lastInsertion) == [nil])
+    }
+
+    @Test func actionInsertionCanBeScratched() async {
+        agent.outcome = .done("Rewrote your last dictation", insertion: LastInsertion(text: "Hi.", bundleIdentifier: nil))
+        let coordinator = await readyCoordinator(failureDisplayDuration: .zero)
+        await act("make that shorter", on: coordinator)
+        await coordinator.recovery?.value
+        await say("scratch that", to: coordinator)
+        #expect(keystrokes.sentChords == [Array(repeating: .deleteBackward, count: 3)])
+    }
+
+    @Test func typingDuringAnActionDropsItsInsertion() async {
+        agent.outcome = .done("Rewrote your last dictation", insertion: LastInsertion(text: "Hi.", bundleIdentifier: nil))
+        agent.onRun = { [hotkey] in hotkey.send(.userInput) }
+        let coordinator = await readyCoordinator(failureDisplayDuration: .zero)
+        await act("make that shorter", on: coordinator)
+        await coordinator.recovery?.value
+        await say("scratch that", to: coordinator)
+        #expect(keystrokes.sentChords.isEmpty)
+    }
+
+    @Test func actionContextReportsTypingDuringTheAction() async {
+        agent.onRun = { [hotkey] in hotkey.send(.userInput) }
+        let coordinator = await readyCoordinator(failureDisplayDuration: .zero)
+        await act("make that shorter", on: coordinator)
+        #expect(agent.contexts.map { $0.isUntouched() } == [false])
+    }
+
+    @Test func untouchedActionContextStaysValid() async {
+        let coordinator = await readyCoordinator(failureDisplayDuration: .zero)
+        await act("make that shorter", on: coordinator)
+        #expect(agent.contexts.map { $0.isUntouched() } == [true])
+    }
+
+    @Test func fnKeyDuringAnActionCountsAsInput() async {
+        agent.outcome = .done("Rewrote your last dictation", insertion: LastInsertion(text: "Hi.", bundleIdentifier: nil))
+        agent.onRun = { [hotkey] in hotkey.send(.cancelled) }
+        let coordinator = await readyCoordinator(failureDisplayDuration: .zero)
+        await act("make that shorter", on: coordinator)
+        #expect(agent.contexts.map { $0.isUntouched() } == [false])
+        await coordinator.recovery?.value
+        await say("scratch that", to: coordinator)
+        #expect(keystrokes.sentChords.isEmpty)
     }
 }

@@ -15,6 +15,7 @@ Private, unlimited voice dictation for macOS — hold <b>Fn</b>, speak, release,
 - **Private by default** — Whisper runs on your Mac. No account, no usage limits, works offline.
 - **Clean text** — with [Ollama](https://ollama.com), filler words are removed, punctuation fixed, and spoken lists turned into bullet points by `gemma4` on your Mac. If you add `gemma4:cloud`, it is used whenever the local model is missing, too slow, or its reply is rejected.
 - **Voice commands** — say "undo that", "scratch that" or "new line" and Veyra presses the keys for you.
+- **Actions** — hold **Fn + Control** and say "open Slack", "open my resume" or "make this more formal".
 - **Noise-aware** — Apple voice processing plus optional Voice Isolation for busy rooms.
 - **Clipboard-safe** — your previous clipboard is restored after every paste.
 
@@ -60,7 +61,7 @@ macOS only grants microphone and keyboard access to signed apps, so the build mu
 ./scripts/install.sh
 ```
 
-This builds a Release copy, installs it to `/Applications`, and launches it. A microphone icon appears in the menu bar.
+This builds a Release copy, installs it to `/Applications`, and launches it. A V on a little sound wave appears in the menu bar; while Veyra is transcribing or working on an action, the waves roll and the V floats on them.
 
 ### 5. First launch
 
@@ -96,6 +97,7 @@ Veyra picks this up automatically; no restart is needed. The cloud model is used
 | Action | How |
 |---|---|
 | Dictate | Hold **Fn**, speak, release |
+| Act | Hold **Control**, then hold **Fn**, speak, release |
 | Cancel | Press any other key while holding Fn |
 | Reduce background voices | Veyra menu → **Microphone Mode…** → **Voice Isolation** |
 | Quit | Veyra menu → **Quit Veyra** (⌘Q) |
@@ -139,6 +141,22 @@ Letters are matched to your keyboard layout, so commands work on AZERTY, QWERTZ 
 
 When a command can't run, Veyra types nothing and shows why. Because a whole utterance is matched, you can't dictate just the words "undo that" as text.
 
+### Actions
+
+Hold **Control**, then hold **Fn** while you speak, and Veyra does what you ask instead of typing it. The overlay shows a ⚡ while it listens.
+
+| Say | Does |
+|---|---|
+| "open Slack", "open V S code" | Opens an installed app |
+| "open github dot com", "open YouTube" | Opens a website in your default browser |
+| "open my downloads", "open the desktop" | Opens Desktop, Documents, Downloads, Home, Pictures, Music or Movies |
+| "open my resume", "open the Veyra project folder" | Opens the best-matching file or folder in your home folder, most recently used first |
+| "make this more formal", "translate this to Hindi", "make it shorter", "fix the grammar" | Rewrites the selected text in place — or what you just dictated, if you haven't typed, clicked or switched apps since |
+
+Rewrites replace the text straight away; ⌘Z or "undo that" brings the original back, and your clipboard is left as it was. If you type or click while a rewrite is in progress, it is cancelled. Text you can't edit, such as a web page, is left alone. In VS Code, JetBrains IDEs, Sublime Text and Cursor, asking with nothing selected copies the current line, so its rewrite is inserted at the cursor — ⌘Z removes it.
+
+When several files match, Veyra opens the best one and tells you how many others matched. Actions need [Ollama](#6-transcript-cleanup-optional) with `gemma4`. The first file search may ask for access to your Documents, Desktop or Downloads folder.
+
 ## Troubleshooting
 
 | Problem | Fix |
@@ -148,6 +166,7 @@ When a command can't run, Veyra types nothing and shows why. Because a whole utt
 | Fn opens the emoji picker | Set *Press 🌐 key to* → **Do Nothing**. |
 | Menu shows an error | Check your connection and click **Retry**. |
 | Fn stops working after an update | Remove Veyra from Accessibility, then add it again. |
+| An action says "Actions need Ollama running" | Open Ollama and check that `ollama list` shows `gemma4:latest`. |
 | Text isn't cleaned up | Make sure Ollama is running and `ollama list` shows `gemma4:latest`. |
 
 View diagnostics (never includes your words):
@@ -174,11 +193,13 @@ tccutil reset All com.ajaysparmar.Veyra
 ```bash
 open Veyra.xcodeproj                                                        # run the Veyra scheme
 xcodebuild test -project Veyra.xcodeproj -scheme Veyra -destination 'platform=macOS'
+TEST_RUNNER_VEYRA_EVAL=1 xcodebuild test -project Veyra.xcodeproj -scheme Veyra -destination 'platform=macOS' -only-testing:VeyraTests/AgentEvalTests   # scores tool calls on live gemma4; needs Ollama
 ```
 
 ```text
 Fn ─► FnKeyMonitor ─► DictationCoordinator ─► AudioRecorder ─► WhisperKitTranscriber ─► OllamaTextProcessor ─► PasteboardTextInserter
                                                                          └─► Intent ─► VoiceCommand.plan ─► CGEventKeystrokeSender
+Fn+⌃ ─► … ─► WhisperKitTranscriber ─► AgentRunner ─► OllamaClient (tools) ─► OpenTool ─► NSWorkspace
 ```
 
 Built with Swift, SwiftUI, AVFoundation, [WhisperKit](https://github.com/argmaxinc/argmax-oss-swift) and [Ollama](https://ollama.com). Each service sits behind a protocol, so engines can be swapped and the coordinator is tested with fakes.

@@ -53,8 +53,8 @@ This is the first `.confirm` tool. The confirmation path it adds is the one 8.4b
 
 ### Tool definition
 
-- name `send`; description "Write a message into the chat or email the user has open, for them to confirm before it is sent. Use when the user asks to reply, send, answer, tell or message someone in the open conversation."
-- parameter `message`: "The exact message to send, written as the user in the first person, with no quotes or explanation"
+- name `send`; description "Write a message into the chat or email the user has open, for them to confirm before it is sent. Use when the user asks to reply, send, answer, tell or message someone in the open conversation and says what to write. If they don't say what the message is, don't use this tool."
+- parameter `message`: "The message the user asked to send, written as the user in the first person, with no quotes or explanation. Never make one up"
 
 ### Phrases
 

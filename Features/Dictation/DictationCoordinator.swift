@@ -5,11 +5,11 @@ import os
 
 @Observable
 final class DictationCoordinator {
-    /// A drafted send waiting for "send it", tied to the app it was drafted in.
+    /// A drafted send waiting for "send it", tied to the app and mode it was drafted in. A browser's mode comes from its tab title, so another tab cancels it.
     private struct PendingSend {
         let id = UUID()
         let prompt: String
-        let bundleIdentifier: String?
+        let context: CommandContext
         let confirmation: Confirmation
     }
 
@@ -75,6 +75,7 @@ final class DictationCoordinator {
     }
 
     func prepareModel() async {
+        cancelPendingSend("reloaded")
         state = .preparing(progress: nil)
         do {
             try await transcriber.prepare { [weak self] progress in self?.updateProgress(progress) }
@@ -199,7 +200,7 @@ final class DictationCoordinator {
                     return showBriefly(.failed(message: AgentError.interrupted.message))
                 }
                 lastInsertion = newInsertion
-                awaitConfirmation(PendingSend(prompt: message, bundleIdentifier: context.bundleIdentifier, confirmation: confirmation))
+                awaitConfirmation(PendingSend(prompt: message, context: context, confirmation: confirmation))
             case .failed(let message):
                 // A failed or misheard action leaves the text where it was, so "scratch that" and rewrites still apply to it.
                 lastInsertion = userInputCount == inputCountBeforeAction ? insertion : nil
@@ -266,7 +267,7 @@ final class DictationCoordinator {
     }
 
     private func confirm(_ pending: PendingSend) async {
-        guard contextProvider.current().bundleIdentifier == pending.bundleIdentifier else {
+        guard CommandContext(contextProvider.current()) == pending.context else {
             Logger.agent.info("Send cancelled: app-changed")
             return fail(AgentError.appChanged.message)
         }
@@ -282,6 +283,7 @@ final class DictationCoordinator {
     }
 
     private func fail(_ message: String) {
+        cancelPendingSend("failed")
         Logger.dictation.error("\(message, privacy: .public)")
         showBriefly(.failed(message: message))
     }

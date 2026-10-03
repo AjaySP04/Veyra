@@ -37,8 +37,8 @@ struct FnKeyTrackerTests {
         #expect(events([.mouseDown]) == [.userInput])
     }
 
-    @Test func mouseDownWhileHeldIsIgnored() {
-        #expect(events([fnDown, .mouseDown, fnUp]) == [.pressed(.dictate), .released])
+    @Test func mouseDownWhileHeldIsUserInputButKeepsRecording() {
+        #expect(events([fnDown, .mouseDown, fnUp]) == [.pressed(.dictate), .userInput, .released])
     }
 
     @Test func typingAfterReleaseIsUserInput() {

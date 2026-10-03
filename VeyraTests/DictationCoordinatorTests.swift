@@ -555,8 +555,8 @@ struct DictationCoordinatorTests {
     private let slack = AppContext(bundleIdentifier: "com.tinyspeck.slackmacgap", windowTitle: nil)
     private let prompt = "Say “send it” to send"
 
-    private func draft(on coordinator: DictationCoordinator, failing error: Error? = nil) async {
-        context.context = slack
+    private func draft(on coordinator: DictationCoordinator, in app: AppContext? = nil, failing error: Error? = nil) async {
+        context.context = app ?? slack
         let confirmation = Confirmation(done: "Sent", failure: "Couldn't send") { [keystrokes] in
             if let error { throw error }
             keystrokes.send([.returnKey])
@@ -707,6 +707,36 @@ struct DictationCoordinatorTests {
         await draft(on: coordinator, failing: AgentError.interrupted)
         await say("send it", to: coordinator)
         #expect(coordinator.state == .failed(message: "Cancelled because you typed"))
+    }
+
+    @Test func clickingWhileSayingSendItCancelsTheSend() async {
+        let coordinator = await readyCoordinator()
+        await draft(on: coordinator)
+        transcriber.transcript = "send it"
+        hotkey.send(.pressed(.dictate), .userInput, .released)
+        await coordinator.transcription?.value
+        #expect(keystrokes.sentChords.isEmpty)
+    }
+
+    @Test func switchingBrowserTabsCancelsTheSend() async {
+        let coordinator = await readyCoordinator()
+        await draft(on: coordinator, in: AppContext(bundleIdentifier: "com.google.Chrome", windowTitle: "Inbox - Gmail"))
+        context.context = AppContext(bundleIdentifier: "com.google.Chrome", windowTitle: "Sign up - Example")
+        await say("send it", to: coordinator)
+        #expect(keystrokes.sentChords.isEmpty)
+        #expect(coordinator.state == .failed(message: "Cancelled because the app changed"))
+    }
+
+    @Test func failedRecordingCancelsTheSend() async {
+        let coordinator = await readyCoordinator(failureDisplayDuration: .zero)
+        await draft(on: coordinator)
+        transcriber.transcribeError = TestError()
+        await dictate(coordinator)
+        await coordinator.recovery?.value
+        #expect(coordinator.state == .idle)
+        transcriber.transcribeError = nil
+        await say("send it", to: coordinator)
+        #expect(keystrokes.sentChords.isEmpty)
     }
 
     @Test func typingWhileDraftingDropsTheSend() async {

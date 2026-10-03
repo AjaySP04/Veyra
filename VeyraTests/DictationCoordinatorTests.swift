@@ -15,7 +15,8 @@ struct DictationCoordinatorTests {
 
     private func readyCoordinator(
         processor: TextProcessing = PassthroughTextProcessor(),
-        failureDisplayDuration: Duration = .seconds(60)
+        failureDisplayDuration: Duration = .seconds(60),
+        confirmationTimeout: Duration = .seconds(60)
     ) async -> DictationCoordinator {
         let coordinator = DictationCoordinator(
             audio: audio,
@@ -28,7 +29,8 @@ struct DictationCoordinatorTests {
             contextProvider: context,
             agent: agent,
             isSecureInputEnabled: { [secureInput] in secureInput.isEnabled },
-            failureDisplayDuration: failureDisplayDuration
+            failureDisplayDuration: failureDisplayDuration,
+            confirmationTimeout: confirmationTimeout
         )
         await coordinator.start()
         return coordinator
@@ -545,6 +547,174 @@ struct DictationCoordinatorTests {
         #expect(agent.contexts.map { $0.isUntouched() } == [false])
         await coordinator.recovery?.value
         await say("scratch that", to: coordinator)
+        #expect(keystrokes.sentChords.isEmpty)
+    }
+
+    // MARK: Confirmed send
+
+    private let slack = AppContext(bundleIdentifier: "com.tinyspeck.slackmacgap", windowTitle: nil)
+    private let prompt = "Say “send it” to send"
+
+    private func draft(on coordinator: DictationCoordinator, failing error: Error? = nil) async {
+        context.context = slack
+        let confirmation = Confirmation(done: "Sent", failure: "Couldn't send") { [keystrokes] in
+            if let error { throw error }
+            keystrokes.send([.returnKey])
+        }
+        agent.outcome = .awaiting(
+            prompt,
+            insertion: LastInsertion(text: "Sounds good", bundleIdentifier: slack.bundleIdentifier),
+            confirmation: confirmation
+        )
+        await act("reply sounds good", on: coordinator)
+    }
+
+    @Test func draftWaitsForConfirmation() async {
+        let coordinator = await readyCoordinator()
+        await draft(on: coordinator)
+        #expect(coordinator.state == .awaiting(message: prompt))
+        #expect(keystrokes.sentChords.isEmpty)
+    }
+
+    @Test func sayingSendItSends() async {
+        let coordinator = await readyCoordinator()
+        await draft(on: coordinator)
+        await say("Send it.", to: coordinator)
+        #expect(keystrokes.sentChords == [[.returnKey]])
+        #expect(coordinator.state == .acted(message: "Sent"))
+    }
+
+    @Test func sendsOnlyOnce() async {
+        let coordinator = await readyCoordinator()
+        await draft(on: coordinator)
+        await say("send it", to: coordinator)
+        await say("send it", to: coordinator)
+        #expect(keystrokes.sentChords == [[.returnKey]])
+        #expect(coordinator.state == .failed(message: "Nothing to send"))
+    }
+
+    @Test func sendItWithNothingPendingPressesNothing() async {
+        context.context = slack
+        let coordinator = await readyCoordinator()
+        await dictate(coordinator)
+        await say("send it", to: coordinator)
+        #expect(keystrokes.sentChords.isEmpty)
+        #expect(coordinator.state == .failed(message: "Nothing to send"))
+    }
+
+    @Test func typingCancelsTheSend() async {
+        let coordinator = await readyCoordinator()
+        await draft(on: coordinator)
+        hotkey.send(.userInput)
+        #expect(coordinator.state == .idle)
+        await say("send it", to: coordinator)
+        #expect(keystrokes.sentChords.isEmpty)
+    }
+
+    @Test func switchingAppsCancelsTheSend() async {
+        let coordinator = await readyCoordinator()
+        await draft(on: coordinator)
+        context.context = AppContext(bundleIdentifier: "com.apple.Notes", windowTitle: nil)
+        await say("send it", to: coordinator)
+        #expect(keystrokes.sentChords.isEmpty)
+        #expect(coordinator.state == .failed(message: "Cancelled because the app changed"))
+    }
+
+    @Test func cancelKeepsTheDraftAndSendsNothing() async {
+        let coordinator = await readyCoordinator()
+        await draft(on: coordinator)
+        await say("Don't send.", to: coordinator)
+        #expect(coordinator.state == .acted(message: "Not sent"))
+        await say("send it", to: coordinator)
+        #expect(keystrokes.sentChords.isEmpty)
+    }
+
+    @Test func cancelWithNothingPending() async {
+        let coordinator = await readyCoordinator()
+        await say("cancel", to: coordinator)
+        #expect(coordinator.state == .failed(message: "Nothing to cancel"))
+    }
+
+    @Test func otherDictationCancelsTheSend() async {
+        let coordinator = await readyCoordinator()
+        await draft(on: coordinator)
+        await say("hello world", to: coordinator)
+        await say("send it", to: coordinator)
+        #expect(inserter.inserted == ["hello world"])
+        #expect(keystrokes.sentChords.isEmpty)
+    }
+
+    @Test func anotherActionCancelsTheSend() async {
+        let coordinator = await readyCoordinator()
+        await draft(on: coordinator)
+        agent.outcome = .done("Opened Slack")
+        await act("open slack", on: coordinator)
+        await say("send it", to: coordinator)
+        #expect(keystrokes.sentChords.isEmpty)
+    }
+
+    @Test func scratchThatDeletesTheDraftAndCancels() async {
+        let coordinator = await readyCoordinator()
+        await draft(on: coordinator)
+        await say("scratch that", to: coordinator)
+        #expect(keystrokes.sentChords == [Array(repeating: .deleteBackward, count: 11)])
+        await say("send it", to: coordinator)
+        #expect(keystrokes.sentChords.count == 1)
+    }
+
+    @Test func aSentMessageCannotBeScratched() async {
+        let coordinator = await readyCoordinator()
+        await draft(on: coordinator)
+        await say("send it", to: coordinator)
+        await say("scratch that", to: coordinator)
+        #expect(keystrokes.sentChords == [[.returnKey]])
+    }
+
+    @Test func timeoutCancelsTheSend() async {
+        let coordinator = await readyCoordinator(confirmationTimeout: .zero)
+        await draft(on: coordinator)
+        await coordinator.confirmationExpiry?.value
+        #expect(coordinator.state == .idle)
+        await say("send it", to: coordinator)
+        #expect(keystrokes.sentChords.isEmpty)
+    }
+
+    @Test func timeoutDoesNotHideANewerState() async {
+        let coordinator = await readyCoordinator(confirmationTimeout: .milliseconds(50))
+        await draft(on: coordinator)
+        hotkey.send(.pressed(.dictate))
+        await coordinator.confirmationExpiry?.value
+        #expect(coordinator.state == .recording(level: 0))
+    }
+
+    @Test func fnWorksWhileWaitingToSend() async {
+        let coordinator = await readyCoordinator()
+        await draft(on: coordinator)
+        hotkey.send(.pressed(.dictate))
+        #expect(coordinator.state == .recording(level: 0))
+    }
+
+    @Test func tooShortClipKeepsWaitingToSend() async {
+        let coordinator = await readyCoordinator()
+        await draft(on: coordinator)
+        audio.samples = [0.1]
+        hotkey.send(.pressed(.dictate), .released)
+        #expect(coordinator.state == .awaiting(message: prompt))
+    }
+
+    @Test func confirmFailureIsShown() async {
+        let coordinator = await readyCoordinator()
+        await draft(on: coordinator, failing: AgentError.interrupted)
+        await say("send it", to: coordinator)
+        #expect(coordinator.state == .failed(message: "Cancelled because you typed"))
+    }
+
+    @Test func typingWhileDraftingDropsTheSend() async {
+        agent.onRun = { [hotkey] in hotkey.send(.userInput) }
+        let coordinator = await readyCoordinator()
+        await draft(on: coordinator)
+        #expect(coordinator.state == .failed(message: "Cancelled because you typed"))
+        await say("send it", to: coordinator)
         #expect(keystrokes.sentChords.isEmpty)
     }
 }

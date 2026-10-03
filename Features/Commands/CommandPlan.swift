@@ -68,6 +68,9 @@ extension VoiceCommand {
         case .newParagraph: return .keys([.softReturn, .softReturn])
         // Return sends messages and submits forms elsewhere, which needs confirmation (8.4).
         case .pressReturn: return isTerminal ? .keys([.returnKey]) : .unavailable("\(title) only works in Terminal")
+        // Only a pending send can be confirmed or cancelled; the coordinator handles those before planning.
+        case .send: return .unavailable("Nothing to send")
+        case .cancelSend: return .unavailable("Nothing to cancel")
         }
     }
 }

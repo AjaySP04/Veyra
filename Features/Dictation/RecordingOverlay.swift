@@ -78,6 +78,9 @@ private struct RecordingPill: View {
         case .acted(let message):
             Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
             Text(message).lineLimit(1)
+        case .awaiting(let message):
+            Image(systemName: "paperplane.fill").foregroundStyle(.blue)
+            Text(message).lineLimit(1)
         case .failed(let message):
             Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.yellow)
             Text(message).lineLimit(1)

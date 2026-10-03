@@ -13,10 +13,12 @@ enum AgentError: Error, Equatable {
     case readOnly
     case notTerminal
     case badCommand
+    case notMessaging
+    case messageTooLong
 
     var message: String {
         switch self {
-        case .unsupported: "I can open things, rewrite text and write commands for now"
+        case .unsupported: "I can open things, rewrite text, write commands and send messages for now"
         case .invalidArguments: "Didn't catch what to do"
         case .unavailable: "Actions need Ollama running"
         case .noApp(let target): "No app called “\(target)”"
@@ -30,6 +32,8 @@ enum AgentError: Error, Equatable {
         case .readOnly: "That text can't be edited"
         case .notTerminal: "Open a terminal first"
         case .badCommand: "Couldn't write that as one command"
+        case .notMessaging: "Open a chat or email first"
+        case .messageTooLong: "That message is too long"
         }
     }
 }

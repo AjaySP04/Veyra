@@ -43,4 +43,6 @@ struct KeyChord: Equatable {
     static let documentEnd = KeyChord(kVK_DownArrow, .maskCommand)
     static let returnKey = KeyChord(kVK_Return)
     static let softReturn = KeyChord(kVK_Return, .maskShift)
+    static let commandReturn = KeyChord(kVK_Return, .maskCommand)
+    static let sendMail = KeyChord("d", [.maskCommand, .maskShift])
 }

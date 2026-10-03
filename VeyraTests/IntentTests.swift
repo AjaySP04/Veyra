@@ -29,6 +29,16 @@ struct IntentTests {
         ("press enter", .pressReturn),
         ("press return", .pressReturn),
         ("hit enter", .pressReturn),
+        ("Send it.", .send),
+        ("send that", .send),
+        ("send this", .send),
+        ("Send.", .send),
+        ("Cancel.", .cancelSend),
+        ("cancel it", .cancelSend),
+        ("cancel that", .cancelSend),
+        ("Don't send.", .cancelSend),
+        ("Don’t send", .cancelSend),
+        ("do not send", .cancelSend),
     ])
     func matchesPhrase(phrase: String, expected: VoiceCommand) {
         #expect(Intent(phrase) == .command(expected))

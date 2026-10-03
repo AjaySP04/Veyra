@@ -68,6 +68,21 @@ struct CommandPlanTests {
         #expect(plan(command, .terminal, app: ghostty) == .unavailable("\(command.title) isn't available in Terminal"))
     }
 
+    @Test(arguments: [DictationMode.standard, .editor, .chat, .email, .terminal])
+    func sendItAloneNeverPressesAKey(mode: DictationMode) {
+        #expect(plan(.send, mode, app: slack) == .unavailable("Nothing to send"))
+        #expect(plan(.cancelSend, mode, app: slack) == .unavailable("Nothing to cancel"))
+    }
+
+    @Test(arguments: [DictationMode.standard, .editor, .chat, .email])
+    func noCommandSendsOutsideATerminal(mode: DictationMode) {
+        let sendKeys: [KeyChord] = [.returnKey, .commandReturn, .sendMail]
+        for command in VoiceCommand.allCases {
+            guard case .keys(let chords) = plan(command, mode, app: slack) else { continue }
+            #expect(!chords.contains(where: sendKeys.contains), "\(command)")
+        }
+    }
+
     @Test func onlyRunItSendsReturnInTerminal() {
         for command in VoiceCommand.allCases where command != .pressReturn {
             guard case .keys(let chords) = plan(command, .terminal, app: ghostty) else { continue }

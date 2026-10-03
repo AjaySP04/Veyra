@@ -3,6 +3,8 @@ import os
 
 enum AgentOutcome: Equatable {
     case done(String, insertion: LastInsertion? = nil)
+    /// The draft is written; the confirmation runs only when the user confirms.
+    case awaiting(String, insertion: LastInsertion?, confirmation: Confirmation)
     case failed(String)
 }
 
@@ -60,11 +62,22 @@ struct AgentRunner: AgentRunning {
                 log(call.name, call, agentError == .badAddress ? "refused" : "not-found", model, start)
                 return .failed(agentError.message)
             }
+            var confirmation: Confirmation?
             switch tool.risk {
             case .immediate: break
+            case .confirm:
+                guard let held = action.confirmation else {
+                    log(call.name, call, "refused", model, start)
+                    return .failed(action.failure)
+                }
+                confirmation = held
             }
             do {
                 try await action.perform()
+                if let confirmation {
+                    log(call.name, call, "awaiting", model, start)
+                    return .awaiting(action.done, insertion: action.insertion, confirmation: confirmation)
+                }
                 log(call.name, call, "done", model, start)
                 return .done(action.done, insertion: action.insertion)
             } catch {

@@ -8,9 +8,10 @@ enum VoiceCommand: String, CaseIterable {
     case lineStart, lineEnd, documentStart, documentEnd
     case newLine, newParagraph
     case pressReturn
+    case send, cancelSend
 
     private static let commandsByPhrase = Dictionary(
-        uniqueKeysWithValues: allCases.flatMap { command in command.phrases.map { ($0, command) } }
+        uniqueKeysWithValues: allCases.flatMap { command in command.phrases.map { (normalized($0), command) } }
     )
 
     init?(phrase: String) {
@@ -38,6 +39,8 @@ enum VoiceCommand: String, CaseIterable {
         case .newLine: ["new line"]
         case .newParagraph: ["new paragraph"]
         case .pressReturn: ["run it", "run that", "run this", "press enter", "press return", "hit enter"]
+        case .send: ["send it", "send that", "send this", "send"]
+        case .cancelSend: ["cancel", "cancel it", "cancel that", "don't send", "do not send"]
         }
     }
 

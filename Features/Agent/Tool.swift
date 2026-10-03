@@ -1,5 +1,19 @@
 enum ToolRisk {
+    /// Local and undoable: performed straight away.
     case immediate
+    /// Leaves the Mac or can't be undone: `perform` only prepares it (a draft), and the `confirmation` runs after the user says so.
+    case confirm
+}
+
+/// The step a `.confirm` tool holds back until the user confirms, such as pressing a chat's send key.
+struct Confirmation: Equatable {
+    let done: String
+    let failure: String
+    let perform: () async throws -> Void
+
+    static func == (lhs: Confirmation, rhs: Confirmation) -> Bool {
+        lhs.done == rhs.done && lhs.failure == rhs.failure
+    }
 }
 
 struct ToolContext: Equatable {
@@ -27,6 +41,7 @@ struct PreparedAction {
     let done: String
     let failure: String
     var insertion: LastInsertion? = nil
+    var confirmation: Confirmation? = nil
     let perform: () async throws -> Void
 }
 

@@ -131,6 +131,9 @@ Hold **Fn** and say one of these phrases on its own. Capitals, punctuation and a
 | "go to top" / "go to bottom" | Moves to the start or end of the document |
 | "new line" / "new paragraph" | Adds a line break or a blank line |
 | "run it" / "press enter" | Presses Return — in a terminal only, so a command Veyra wrote runs once you've checked it |
+| "send it" / "send that" | Sends a message Veyra drafted (see [Actions](#actions)) |
+| "cancel" / "don't send" | Keeps the drafted message but doesn't send it |
+| "slash compact", "slash handoff …" | In a terminal, types `/compact` or `/handoff …` — for Claude Code and other tools with slash commands. Say "run it" to run it |
 
 Some commands adapt to the app:
 
@@ -154,10 +157,13 @@ Hold **Control**, then hold **Fn** while you speak, and Veyra does what you ask 
 | "open my resume", "open the Veyra project folder" | Opens the best-matching file or folder in your home folder, most recently used first |
 | "make this more formal", "translate this to Hindi", "make it shorter", "fix the grammar" | Rewrites the selected text in place — or what you just dictated, if you haven't typed, clicked or switched apps since |
 | "git status", "find all PDFs in Downloads", "what's using port 3000" (in a terminal) | Writes the command at the prompt for you to check. It never presses Return |
+| "reply sounds good, see you at 5", "tell them I'm running late" (in a chat or email) | Writes the message where your cursor is, then waits for you to say "send it" |
 
 Rewrites replace the text straight away; ⌘Z or "undo that" brings the original back, and your clipboard is left as it was. If you type or click while a rewrite is in progress, it is cancelled. Text you can't edit, such as a web page, is left alone. In VS Code, JetBrains IDEs, Sublime Text and Cursor, asking with nothing selected copies the current line, so its rewrite is inserted at the cursor — ⌘Z removes it.
 
 Commands are written only in a terminal (Terminal, iTerm2, Ghostty, Warp, kitty, Alacritty, WezTerm, Hyper or Rio). Veyra clears the prompt line first (⌃Y brings back what was there in most shells), then writes one zsh command — never Return, and never anything with a line break in it. When it looks right, press Return or say "run it" (plain Fn). A command that deletes files, uses `sudo`, runs a downloaded script, force-pushes or erases a disk is still written, but the overlay says "Check carefully" and why. "scratch that" removes the command, and "make it recursive" changes it. The model doesn't know which folder your shell is in, so relative paths start wherever you are. Warp's own input editor may not clear the line, so the command is added to what's there.
+
+Messages are drafted only in chat apps (Slack, Teams, WhatsApp, Messages, Discord, Telegram, and Slack, WhatsApp, Discord, Teams, Messenger or Google Chat in a browser) and email (Mail, Outlook, Spark, Gmail and Outlook on the web). Veyra pastes the message at the cursor and the overlay says "Say “send it” to send". Nothing is sent until you hold plain Fn and say "send it"; Veyra then presses the app's send key — Return in chats, ⌘⇧D in Mail and ⌘Return in other email. In email that sends the whole email, not just the part Veyra wrote. Typing, clicking, switching apps, dictating anything else, "cancel", or waiting 60 seconds cancels the send and leaves the draft in place; "scratch that" deletes it. A message that has been sent can't be unsent.
 
 When several files match, Veyra opens the best one and tells you how many others matched. Actions need [Ollama](#6-transcript-cleanup-optional) with `gemma4`. The first file search may ask for access to your Documents, Desktop or Downloads folder.
 

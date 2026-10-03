@@ -22,7 +22,8 @@ struct FnKeyTracker {
              .flagsChanged(fn: true, control: true, otherModifiers: _) where held == .dictate,
              .keyDown where held != nil:
             return cancel()
-        case .keyDown where held == nil, .mouseDown where held == nil:
+        // A click moves focus even while Fn is held, so it ends "scratch that" and a pending send; it doesn't stop the recording.
+        case .keyDown where held == nil, .mouseDown:
             return .userInput
         default:
             return nil

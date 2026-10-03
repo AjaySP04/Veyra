@@ -550,6 +550,23 @@ struct DictationCoordinatorTests {
         #expect(keystrokes.sentChords.isEmpty)
     }
 
+    // MARK: Slash commands
+
+    @Test func spokenSlashCommandIsTypedInATerminal() async {
+        context.context = AppContext(bundleIdentifier: "com.mitchellh.ghostty", windowTitle: nil)
+        let coordinator = await readyCoordinator(processor: UppercasingProcessor())
+        await say("Slash compact.", to: coordinator)
+        await say("Slash handoff, write it for the send branch.", to: coordinator)
+        #expect(inserter.inserted == ["/compact", "/handoff WRITE IT FOR THE SEND BRANCH."])
+    }
+
+    @Test func spokenSlashIsOrdinaryTextOutsideATerminal() async {
+        context.context = AppContext(bundleIdentifier: "com.apple.Notes", windowTitle: nil)
+        let coordinator = await readyCoordinator(processor: UppercasingProcessor())
+        await say("Slash compact.", to: coordinator)
+        #expect(inserter.inserted == ["SLASH COMPACT."])
+    }
+
     // MARK: Confirmed send
 
     private let slack = AppContext(bundleIdentifier: "com.tinyspeck.slackmacgap", windowTitle: nil)

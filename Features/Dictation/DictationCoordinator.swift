@@ -155,7 +155,15 @@ final class DictationCoordinator {
             case .command(let command):
                 return await run(command, in: context)
             case .dictate(let text) where !text.isEmpty:
-                let processed = try await processor.process(text, mode: context.mode)
+                let processed: String
+                if context.mode == .terminal, let slash = SlashCommand(text) {
+                    // The command itself skips cleanup so it's typed exactly; only what follows is cleaned.
+                    Logger.dictation.info("Slash command")
+                    let rest = slash.rest.isEmpty ? "" : try await processor.process(slash.rest, mode: context.mode)
+                    processed = SlashCommand(command: slash.command, rest: rest).text
+                } else {
+                    processed = try await processor.process(text, mode: context.mode)
+                }
                 let inputCountBeforeInsert = userInputCount
                 try await inserter.insert(processed)
                 let isUntouched = userInputCount == inputCountBeforeInsert && !isSecureInputEnabled()

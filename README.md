@@ -133,6 +133,7 @@ Hold **Fn** and say one of these phrases on its own. Capitals, punctuation and a
 | "run it" / "press enter" | Presses Return — in a terminal only, so a command Veyra wrote runs once you've checked it |
 | "send it" / "send that" | Sends a message Veyra drafted (see [Actions](#actions)) |
 | "cancel" / "don't send" | Keeps the drafted message but doesn't send it |
+| "slash compact", "slash handoff …" | In a terminal, types `/compact` or `/handoff …` — for Claude Code and other tools with slash commands. Say "run it" to run it |
 
 Some commands adapt to the app:
 

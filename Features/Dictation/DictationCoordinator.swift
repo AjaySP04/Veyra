@@ -175,6 +175,8 @@ final class DictationCoordinator {
             case .done(let message, let newInsertion):
                 lastInsertion = userInputCount == inputCountBeforeAction ? newInsertion : nil
                 showBriefly(.acted(message: message))
+            case .awaiting(let message, _, _):
+                showBriefly(.failed(message: message))
             case .failed(let message):
                 // A failed or misheard action leaves the text where it was, so "scratch that" and rewrites still apply to it.
                 lastInsertion = userInputCount == inputCountBeforeAction ? insertion : nil

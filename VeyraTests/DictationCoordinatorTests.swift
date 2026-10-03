@@ -475,7 +475,7 @@ struct DictationCoordinatorTests {
     }
 
     @Test func failedActionKeepsTheLastDictation() async {
-        agent.outcome = .failed("I can open things, rewrite text and write commands for now")
+        agent.outcome = .failed("I can open things, rewrite text, write commands and send messages for now")
         let coordinator = await readyCoordinator(failureDisplayDuration: .zero)
         await dictate(coordinator)
         await act("do something odd", on: coordinator)

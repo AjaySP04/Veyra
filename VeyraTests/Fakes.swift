@@ -195,7 +195,8 @@ final class FakeToolCaller: ToolCalling {
 @MainActor
 final class FakeTool: Tool {
     let definition = ToolDefinition(name: "open", description: "Open", parameters: [])
-    let risk = ToolRisk.immediate
+    var risk = ToolRisk.immediate
+    var confirmation: Confirmation?
     var prepareError: Error?
     var performError: Error?
     var insertion: LastInsertion?
@@ -207,7 +208,7 @@ final class FakeTool: Tool {
         preparedArguments.append(arguments)
         contexts.append(context)
         if let prepareError { throw prepareError }
-        return PreparedAction(done: "Opened Slack", failure: "Couldn't open Slack", insertion: insertion) { [self] in
+        return PreparedAction(done: "Opened Slack", failure: "Couldn't open Slack", insertion: insertion, confirmation: confirmation) { [self] in
             performCount += 1
             if let performError { throw performError }
         }

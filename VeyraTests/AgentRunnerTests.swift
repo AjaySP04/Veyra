@@ -31,7 +31,7 @@ struct AgentRunnerTests {
     @Test func textReplyIsUnsupportedWithoutTryingCloud() async {
         caller.replies[local] = .success(.text("unsupported"))
         caller.replies[cloud] = .success(openSlack)
-        #expect(await runner.run("what's the weather") == .failed("I can open things, rewrite text and write commands for now"))
+        #expect(await runner.run("what's the weather") == .failed("I can open things, rewrite text, write commands and send messages for now"))
         #expect(caller.requests.map(\.model) == [local])
         #expect(tool.performCount == 0)
     }
@@ -59,12 +59,12 @@ struct AgentRunnerTests {
     @Test func unknownToolEverywhereIsUnsupported() async {
         caller.replies[local] = .success(.call(ToolCall(name: "launch", arguments: [:])))
         caller.replies[cloud] = .success(.call(ToolCall(name: "launch", arguments: [:])))
-        #expect(await runner.run("Open Slack.") == .failed("I can open things, rewrite text and write commands for now"))
+        #expect(await runner.run("Open Slack.") == .failed("I can open things, rewrite text, write commands and send messages for now"))
     }
 
     @Test func malformedThenUnreachableKeepsTheMalformedMessage() async {
         caller.replies[local] = .success(.call(ToolCall(name: "launch", arguments: [:])))
-        #expect(await runner.run("Open Slack.") == .failed("I can open things, rewrite text and write commands for now"))
+        #expect(await runner.run("Open Slack.") == .failed("I can open things, rewrite text, write commands and send messages for now"))
     }
 
     @Test func noModelReachableNeedsOllama() async {
@@ -89,7 +89,7 @@ struct AgentRunnerTests {
     }
 
     @Test(arguments: [
-        (AgentError.unsupported, "I can open things, rewrite text and write commands for now"),
+        (AgentError.unsupported, "I can open things, rewrite text, write commands and send messages for now"),
         (.invalidArguments, "Didn't catch what to do"),
         (.unavailable, "Actions need Ollama running"),
         (.noApp("Foo"), "No app called “Foo”"),
@@ -121,6 +121,48 @@ struct AgentRunnerTests {
         tool.performError = AgentError.appChanged
         caller.replies[local] = .success(openSlack)
         #expect(await runner.run("Open Slack.") == .failed("Cancelled because the app changed"))
+    }
+
+    @Test func confirmToolDraftsThenAwaitsConfirmation() async throws {
+        var confirmed = 0
+        let confirmation = Confirmation(done: "Sent", failure: "Couldn't send") { confirmed += 1 }
+        tool.risk = .confirm
+        tool.confirmation = confirmation
+        tool.insertion = LastInsertion(text: "Sounds good", bundleIdentifier: "com.tinyspeck.slackmacgap")
+        caller.replies[local] = .success(openSlack)
+        let outcome = await runner.run("reply sounds good")
+        #expect(outcome == .awaiting("Opened Slack", insertion: tool.insertion, confirmation: confirmation))
+        #expect(tool.performCount == 1)
+        #expect(confirmed == 0)
+        guard case .awaiting(_, _, let pending) = outcome else { return }
+        try await pending.perform()
+        #expect(confirmed == 1)
+    }
+
+    @Test func confirmToolWithoutAConfirmationIsRefused() async {
+        tool.risk = .confirm
+        caller.replies[local] = .success(openSlack)
+        #expect(await runner.run("reply sounds good") == .failed("Couldn't open Slack"))
+        #expect(tool.performCount == 0)
+    }
+
+    @Test func confirmToolDraftFailureIsReported() async {
+        tool.risk = .confirm
+        tool.confirmation = Confirmation(done: "Sent", failure: "Couldn't send") {}
+        tool.performError = AgentError.interrupted
+        caller.replies[local] = .success(openSlack)
+        #expect(await runner.run("reply sounds good") == .failed("Cancelled because you typed"))
+    }
+
+    @Test func immediateToolIgnoresAConfirmation() async {
+        tool.confirmation = Confirmation(done: "Sent", failure: "Couldn't send") {}
+        caller.replies[local] = .success(openSlack)
+        #expect(await runner.run("Open Slack.") == .done("Opened Slack"))
+    }
+
+    @Test func sendMessages() {
+        #expect(AgentError.notMessaging.message == "Open a chat or email first")
+        #expect(AgentError.messageTooLong.message == "That message is too long")
     }
 
     @Test func newRewriteMessages() {

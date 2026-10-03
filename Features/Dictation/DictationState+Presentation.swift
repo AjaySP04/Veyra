@@ -1,7 +1,7 @@
 extension DictationState {
     var menuBarIcon: MenuBarIcon {
         switch self {
-        case .preparing, .idle, .recording, .acted: .mark(swinging: false)
+        case .preparing, .idle, .recording, .acted, .awaiting: .mark(swinging: false)
         case .transcribing, .acting: .mark(swinging: true)
         case .failed, .unavailable: .symbol("exclamationmark.triangle")
         }
@@ -15,14 +15,14 @@ extension DictationState {
         case .recording: "Listening…"
         case .transcribing: "Transcribing…"
         case .acting: "Working…"
-        case .acted(let message): message
+        case .acted(let message), .awaiting(let message): message
         case .failed(let message), .unavailable(let message): message
         }
     }
 
     var showsOverlay: Bool {
         switch self {
-        case .recording, .transcribing, .acting, .acted, .failed: true
+        case .recording, .transcribing, .acting, .acted, .awaiting, .failed: true
         case .preparing, .idle, .unavailable: false
         }
     }

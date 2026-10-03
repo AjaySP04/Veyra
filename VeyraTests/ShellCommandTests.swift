@@ -85,6 +85,6 @@ struct ShellCommandTests {
     @Test func messagesMatchTheSpec() {
         #expect(AgentError.notTerminal.message == "Open a terminal first")
         #expect(AgentError.badCommand.message == "Couldn't write that as one command")
-        #expect(AgentError.unsupported.message == "I can open things, rewrite text and write commands for now")
+        #expect(AgentError.unsupported.message == "I can open things, rewrite text, write commands and send messages for now")
     }
 }

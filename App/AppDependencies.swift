@@ -28,6 +28,7 @@ final class AppDependencies {
             frontmostApp: frontmostApp
         )
         let shellTool = ShellTool(inserter: inserter, keystrokes: keystrokes, frontmostApp: frontmostApp)
+        let sendTool = SendTool(inserter: inserter, keystrokes: keystrokes, frontmostApp: frontmostApp)
         let coordinator = DictationCoordinator(
             audio: AudioRecorder(),
             transcriber: WhisperKitTranscriber(),
@@ -37,7 +38,7 @@ final class AppDependencies {
             hotkey: FnKeyMonitor(),
             permissions: permissions,
             contextProvider: FrontmostAppContextProvider(),
-            agent: AgentRunner(caller: client, registry: ToolRegistry([openTool, rewriteTool, shellTool]))
+            agent: AgentRunner(caller: client, registry: ToolRegistry([openTool, rewriteTool, shellTool, sendTool]))
         )
         self.permissions = permissions
         self.coordinator = coordinator

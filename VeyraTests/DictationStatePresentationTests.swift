@@ -11,6 +11,7 @@ struct DictationStatePresentationTests {
         (.unavailable(message: "Offline"), "Offline"),
         (.acting, "Working…"),
         (.acted(message: "Opened Slack"), "Opened Slack"),
+        (.awaiting(message: "Say “send it” to send"), "Say “send it” to send"),
     ])
     func statusText(state: DictationState, expected: String) {
         #expect(state.statusText == expected)
@@ -25,6 +26,7 @@ struct DictationStatePresentationTests {
         (.unavailable(message: "x"), false),
         (.acting, true),
         (.acted(message: "x"), true),
+        (.awaiting(message: "x"), true),
     ])
     func overlayVisibility(state: DictationState, expected: Bool) {
         #expect(state.showsOverlay == expected)

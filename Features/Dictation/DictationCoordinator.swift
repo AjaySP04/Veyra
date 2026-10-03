@@ -5,6 +5,14 @@ import os
 
 @Observable
 final class DictationCoordinator {
+    /// A drafted send waiting for "send it", tied to the app and mode it was drafted in. A browser's mode comes from its tab title, so another tab cancels it.
+    private struct PendingSend {
+        let id = UUID()
+        let prompt: String
+        let context: CommandContext
+        let confirmation: Confirmation
+    }
+
     private static let minimumSampleCount = Int(AudioFormat.sampleRate * 0.3)
     private static let silenceLevel: Float = 0.1
 
@@ -12,6 +20,8 @@ final class DictationCoordinator {
     private(set) var gesture: Gesture = .dictate
     @ObservationIgnored private(set) var transcription: Task<Void, Never>?
     @ObservationIgnored private(set) var recovery: Task<Void, Never>?
+    @ObservationIgnored private(set) var confirmationExpiry: Task<Void, Never>?
+    @ObservationIgnored private var pendingSend: PendingSend?
     @ObservationIgnored private var context = CommandContext(mode: .standard, bundleIdentifier: nil)
     @ObservationIgnored private var lastInsertion: LastInsertion?
     @ObservationIgnored private var userInputCount = 0
@@ -27,6 +37,7 @@ final class DictationCoordinator {
     private let agent: AgentRunning
     private let isSecureInputEnabled: () -> Bool
     private let failureDisplayDuration: Duration
+    private let confirmationTimeout: Duration
 
     init(
         audio: AudioCapturing,
@@ -39,7 +50,8 @@ final class DictationCoordinator {
         contextProvider: AppContextProviding,
         agent: AgentRunning,
         isSecureInputEnabled: @escaping () -> Bool = { IsSecureEventInputEnabled() },
-        failureDisplayDuration: Duration = .seconds(2)
+        failureDisplayDuration: Duration = .seconds(2),
+        confirmationTimeout: Duration = .seconds(60)
     ) {
         self.audio = audio
         self.transcriber = transcriber
@@ -52,6 +64,7 @@ final class DictationCoordinator {
         self.agent = agent
         self.isSecureInputEnabled = isSecureInputEnabled
         self.failureDisplayDuration = failureDisplayDuration
+        self.confirmationTimeout = confirmationTimeout
     }
 
     func start() async {
@@ -62,6 +75,7 @@ final class DictationCoordinator {
     }
 
     func prepareModel() async {
+        cancelPendingSend("reloaded")
         state = .preparing(progress: nil)
         do {
             try await transcriber.prepare { [weak self] progress in self?.updateProgress(progress) }
@@ -77,16 +91,15 @@ final class DictationCoordinator {
 
     func handle(_ event: HotkeyEvent) {
         switch (event, state) {
-        case (.pressed(let gesture), .idle), (.pressed(let gesture), .acted), (.pressed(let gesture), .failed):
+        case (.pressed(let gesture), .idle), (.pressed(let gesture), .acted),
+             (.pressed(let gesture), .failed), (.pressed(let gesture), .awaiting):
             beginRecording(gesture)
         case (.released, .recording): finishRecording()
         case (.cancelled, .recording): cancelRecording()
-        case (.cancelled, _):
+        case (.cancelled, _), (.userInput, _):
             userInputCount += 1
             lastInsertion = nil
-        case (.userInput, _):
-            userInputCount += 1
-            lastInsertion = nil
+            cancelPendingSend("typed")
         default: break
         }
     }
@@ -111,7 +124,7 @@ final class DictationCoordinator {
         Logger.dictation.info("Clip \(samples.count) samples, level \(AudioLevel.normalized(samples))")
         guard isWorthTranscribing(samples) else {
             Logger.dictation.info("Clip skipped as too short or silent")
-            state = .idle
+            state = restingState
             return
         }
         state = .transcribing
@@ -126,6 +139,7 @@ final class DictationCoordinator {
     private func cancelRecording() {
         _ = audio.stop()
         lastInsertion = nil
+        cancelPendingSend("typed")
         state = .idle
     }
 
@@ -133,11 +147,23 @@ final class DictationCoordinator {
         do {
             let transcript = try await transcriber.transcribe(samples)
             Logger.dictation.info("Transcript \(transcript.count) characters")
-            switch Intent(transcript) {
+            let intent = Intent(transcript)
+            if intent != .command(.send), intent != .command(.cancelSend), intent != .dictate("") {
+                cancelPendingSend("replaced")
+            }
+            switch intent {
             case .command(let command):
-                return run(command, in: context)
+                return await run(command, in: context)
             case .dictate(let text) where !text.isEmpty:
-                let processed = try await processor.process(text, mode: context.mode)
+                let processed: String
+                if context.mode == .terminal, let slash = SlashCommand(text) {
+                    // The command itself skips cleanup so it's typed exactly; only what follows is cleaned.
+                    Logger.dictation.info("Slash command")
+                    let rest = slash.rest.isEmpty ? "" : try await processor.process(slash.rest, mode: context.mode)
+                    processed = SlashCommand(command: slash.command, rest: rest).text
+                } else {
+                    processed = try await processor.process(text, mode: context.mode)
+                }
                 let inputCountBeforeInsert = userInputCount
                 try await inserter.insert(processed)
                 let isUntouched = userInputCount == inputCountBeforeInsert && !isSecureInputEnabled()
@@ -145,7 +171,7 @@ final class DictationCoordinator {
                     ? LastInsertion(text: processed, bundleIdentifier: context.bundleIdentifier)
                     : nil
             case .dictate:
-                break
+                return state = restingState
             }
             state = .idle
         } catch {
@@ -157,9 +183,10 @@ final class DictationCoordinator {
         do {
             let transcript = try await transcriber.transcribe(samples)
             guard !transcript.isEmpty else {
-                state = .idle
+                state = restingState
                 return
             }
+            cancelPendingSend("replaced")
             state = .acting
             let insertion = isSecureInputEnabled() || lastInsertion?.bundleIdentifier != context.bundleIdentifier ? nil : lastInsertion
             lastInsertion = nil
@@ -175,6 +202,13 @@ final class DictationCoordinator {
             case .done(let message, let newInsertion):
                 lastInsertion = userInputCount == inputCountBeforeAction ? newInsertion : nil
                 showBriefly(.acted(message: message))
+            case .awaiting(let message, let newInsertion, let confirmation):
+                guard userInputCount == inputCountBeforeAction else {
+                    lastInsertion = nil
+                    return showBriefly(.failed(message: AgentError.interrupted.message))
+                }
+                lastInsertion = newInsertion
+                awaitConfirmation(PendingSend(prompt: message, context: context, confirmation: confirmation))
             case .failed(let message):
                 // A failed or misheard action leaves the text where it was, so "scratch that" and rewrites still apply to it.
                 lastInsertion = userInputCount == inputCountBeforeAction ? insertion : nil
@@ -186,12 +220,20 @@ final class DictationCoordinator {
         }
     }
 
-    private func run(_ command: VoiceCommand, in context: CommandContext) {
+    private func run(_ command: VoiceCommand, in context: CommandContext) async {
         Logger.dictation.info("Command \(command.rawValue, privacy: .public)")
         let insertion = isSecureInputEnabled() ? nil : lastInsertion
         lastInsertion = nil
         guard contextProvider.current().bundleIdentifier == context.bundleIdentifier else {
+            cancelPendingSend("app-changed")
             return fail("Command cancelled because the app changed")
+        }
+        if command == .send || command == .cancelSend, let pending = takePendingSend() {
+            guard command == .send else {
+                Logger.agent.info("Send cancelled")
+                return showBriefly(.acted(message: "Not sent"))
+            }
+            return await confirm(pending)
         }
         let plan = command.plan(in: context, after: insertion)
         switch plan {
@@ -203,7 +245,53 @@ final class DictationCoordinator {
         }
     }
 
+    private var restingState: DictationState {
+        pendingSend.map { .awaiting(message: $0.prompt) } ?? .idle
+    }
+
+    private func awaitConfirmation(_ pending: PendingSend) {
+        pendingSend = pending
+        state = .awaiting(message: pending.prompt)
+        confirmationExpiry = Task { [confirmationTimeout] in
+            try? await Task.sleep(for: confirmationTimeout)
+            guard !Task.isCancelled, pendingSend?.id == pending.id else { return }
+            cancelPendingSend("expired")
+        }
+    }
+
+    private func takePendingSend() -> PendingSend? {
+        defer {
+            pendingSend = nil
+            confirmationExpiry?.cancel()
+        }
+        return pendingSend
+    }
+
+    /// Drops a pending send; the draft stays where it is. Only the waiting prompt is cleared, never a newer state.
+    private func cancelPendingSend(_ reason: String) {
+        guard takePendingSend() != nil else { return }
+        Logger.agent.info("Send cancelled: \(reason, privacy: .public)")
+        if case .awaiting = state { state = .idle }
+    }
+
+    private func confirm(_ pending: PendingSend) async {
+        guard CommandContext(contextProvider.current()) == pending.context else {
+            Logger.agent.info("Send cancelled: app-changed")
+            return fail(AgentError.appChanged.message)
+        }
+        state = .acting
+        do {
+            try await pending.confirmation.perform()
+            Logger.agent.info("Send confirmed")
+            showBriefly(.acted(message: pending.confirmation.done))
+        } catch {
+            Logger.agent.info("Send failed")
+            showBriefly(.failed(message: (error as? AgentError)?.message ?? pending.confirmation.failure))
+        }
+    }
+
     private func fail(_ message: String) {
+        cancelPendingSend("failed")
         Logger.dictation.error("\(message, privacy: .public)")
         showBriefly(.failed(message: message))
     }
